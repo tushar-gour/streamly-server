@@ -1,55 +1,294 @@
 import mongoose, { isValidObjectId } from "mongoose";
+
 import { User } from "../models/user.model.js";
 import { Subscription } from "../models/subscription.model.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import { BadRequestError, NotFoundError } from "../utils/ApiError.js";
+import { ApiResponse, PaginationBuilder } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { PaginationDefaults } from "../constants.js";
 
-const toggleSubscription = asyncHandler(async (req, res) => {
-    const { channelId } = req.params;
-
-    if (!isValidObjectId(channelId)) {
-        throw new ApiError(400, "Invalid channel ID");
+class SubscriptionController {
+    static #validateObjectId(id, fieldName = "ID") {
+        if (!id || !isValidObjectId(id)) {
+            throw new BadRequestError(`Invalid ${fieldName}`);
+        }
     }
 
-    const existingSubscription = await Subscription.findOne({ channel: channelId, user: req.user._id });
+    static toggleSubscription = asyncHandler(async (req, res) => {
+        const { channelId } = req.params;
 
-    if (existingSubscription) {
-        // If the subscription exists, remove it
-        await Subscription.deleteOne({ _id: existingSubscription._id });
-        return res.status(200).json(new ApiResponse(200, null, "Unsubscribed successfully"));
-    } else {
-        // If the subscription does not exist, create it
-        const newSubscription = new Subscription({ channel: channelId, user: req.user._id });
-        await newSubscription.save();
-        return res.status(201).json(new ApiResponse(201, newSubscription, "Subscribed successfully"));
-    }
-});
+        SubscriptionController.#validateObjectId(channelId, "channel ID");
 
-// Controller to return subscriber list of a channel
-const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const { channelId } = req.params;
+        if (channelId === req.user._id.toString()) {
+            throw new BadRequestError("You cannot subscribe to yourself");
+        }
 
-    if (!isValidObjectId(channelId)) {
-        throw new ApiError(400, "Invalid channel ID");
-    }
+        const channel = await User.findById(channelId);
+        if (!channel) {
+            throw new NotFoundError("Channel", channelId);
+        }
 
-    const subscribers = await Subscription.find({ channel: channelId }).populate('user');
+        const existingSubscription = await Subscription.findOne({
+            channel: channelId,
+            subscriber: req.user._id,
+        });
 
-    res.status(200).json(new ApiResponse(200, subscribers, "Subscribers fetched successfully"));
-});
+        let isSubscribed;
+        if (existingSubscription) {
+            await Subscription.findByIdAndDelete(existingSubscription._id);
+            isSubscribed = false;
+        } else {
+            await Subscription.create({
+                channel: channelId,
+                subscriber: req.user._id,
+            });
+            isSubscribed = true;
+        }
 
-// Controller to return channel list to which user has subscribed
-const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params;
+        const subscribersCount = await Subscription.countDocuments({
+            channel: channelId,
+        });
 
-    if (!isValidObjectId(subscriberId)) {
-        throw new ApiError(400, "Invalid subscriber ID");
-    }
+        const message = isSubscribed
+            ? "Subscribed successfully"
+            : "Unsubscribed successfully";
+        const statusCode = isSubscribed ? 201 : 200;
 
-    const subscriptions = await Subscription.find({ user: subscriberId }).populate('channel');
+        return res.status(statusCode).json(
+            ApiResponse.success(
+                {
+                    isSubscribed,
+                    subscribersCount,
+                },
+                message
+            )
+        );
+    });
 
-    res.status(200).json(new ApiResponse(200, subscriptions, "Subscribed channels fetched successfully"));
-});
+    static getChannelSubscribers = asyncHandler(async (req, res) => {
+        const { channelId } = req.params;
+        const {
+            page = PaginationDefaults.PAGE,
+            limit = PaginationDefaults.LIMIT,
+        } = req.query;
 
-export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
+        SubscriptionController.#validateObjectId(channelId, "channel ID");
+
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(
+            Math.max(1, parseInt(limit, 10)),
+            PaginationDefaults.MAX_LIMIT
+        );
+
+        const pipeline = [
+            { $match: { channel: new mongoose.Types.ObjectId(channelId) } },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "subscriber",
+                    foreignField: "_id",
+                    as: "subscriber",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "subscriptions",
+                                localField: "_id",
+                                foreignField: "channel",
+                                as: "subscribers",
+                            },
+                        },
+                        {
+                            $addFields: {
+                                subscribersCount: { $size: "$subscribers" },
+                                isSubscribed: req.user
+                                    ? {
+                                          $in: [
+                                              new mongoose.Types.ObjectId(
+                                                  req.user._id
+                                              ),
+                                              "$subscribers.subscriber",
+                                          ],
+                                      }
+                                    : false,
+                            },
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                username: 1,
+                                fullName: 1,
+                                avatar: 1,
+                                subscribersCount: 1,
+                                isSubscribed: 1,
+                            },
+                        },
+                    ],
+                },
+            },
+            { $unwind: "$subscriber" },
+            { $sort: { createdAt: -1 } },
+            {
+                $project: {
+                    _id: "$subscriber._id",
+                    username: "$subscriber.username",
+                    fullName: "$subscriber.fullName",
+                    avatar: "$subscriber.avatar",
+                    subscribersCount: "$subscriber.subscribersCount",
+                    isSubscribed: "$subscriber.isSubscribed",
+                    subscribedAt: "$createdAt",
+                },
+            },
+        ];
+
+        const totalDocs = await Subscription.countDocuments({
+            channel: new mongoose.Types.ObjectId(channelId),
+        });
+
+        pipeline.push(
+            { $skip: (pageNum - 1) * limitNum },
+            { $limit: limitNum }
+        );
+
+        const subscribers = await Subscription.aggregate(pipeline);
+
+        const pagination = new PaginationBuilder()
+            .setPage(pageNum)
+            .setLimit(limitNum)
+            .setTotalDocs(totalDocs)
+            .build();
+
+        return res
+            .status(200)
+            .json(
+                ApiResponse.paginated(
+                    subscribers,
+                    pagination,
+                    "Channel subscribers fetched successfully"
+                )
+            );
+    });
+
+    static getSubscribedChannels = asyncHandler(async (req, res) => {
+        const { subscriberId } = req.params;
+        const {
+            page = PaginationDefaults.PAGE,
+            limit = PaginationDefaults.LIMIT,
+        } = req.query;
+
+        SubscriptionController.#validateObjectId(subscriberId, "subscriber ID");
+
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(
+            Math.max(1, parseInt(limit, 10)),
+            PaginationDefaults.MAX_LIMIT
+        );
+
+        const pipeline = [
+            {
+                $match: {
+                    subscriber: new mongoose.Types.ObjectId(subscriberId),
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "channel",
+                    foreignField: "_id",
+                    as: "channel",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "subscriptions",
+                                localField: "_id",
+                                foreignField: "channel",
+                                as: "subscribers",
+                            },
+                        },
+                        {
+                            $lookup: {
+                                from: "videos",
+                                localField: "_id",
+                                foreignField: "owner",
+                                as: "videos",
+                                pipeline: [
+                                    { $match: { isPublished: true } },
+                                    { $sort: { createdAt: -1 } },
+                                    { $limit: 1 },
+                                ],
+                            },
+                        },
+                        {
+                            $addFields: {
+                                subscribersCount: { $size: "$subscribers" },
+                                latestVideo: { $first: "$videos" },
+                            },
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                username: 1,
+                                fullName: 1,
+                                avatar: 1,
+                                subscribersCount: 1,
+                                latestVideo: {
+                                    _id: 1,
+                                    title: 1,
+                                    thumbnail: 1,
+                                    createdAt: 1,
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+            { $unwind: "$channel" },
+            { $sort: { createdAt: -1 } },
+            {
+                $project: {
+                    _id: "$channel._id",
+                    username: "$channel.username",
+                    fullName: "$channel.fullName",
+                    avatar: "$channel.avatar",
+                    subscribersCount: "$channel.subscribersCount",
+                    latestVideo: "$channel.latestVideo",
+                    subscribedAt: "$createdAt",
+                },
+            },
+        ];
+
+        const totalDocs = await Subscription.countDocuments({
+            subscriber: new mongoose.Types.ObjectId(subscriberId),
+        });
+
+        pipeline.push(
+            { $skip: (pageNum - 1) * limitNum },
+            { $limit: limitNum }
+        );
+
+        const channels = await Subscription.aggregate(pipeline);
+
+        const pagination = new PaginationBuilder()
+            .setPage(pageNum)
+            .setLimit(limitNum)
+            .setTotalDocs(totalDocs)
+            .build();
+
+        return res
+            .status(200)
+            .json(
+                ApiResponse.paginated(
+                    channels,
+                    pagination,
+                    "Subscribed channels fetched successfully"
+                )
+            );
+    });
+}
+
+export const toggleSubscription = SubscriptionController.toggleSubscription;
+export const getUserChannelSubscribers =
+    SubscriptionController.getChannelSubscribers;
+export const getSubscribedChannels =
+    SubscriptionController.getSubscribedChannels;
+
+export { SubscriptionController };

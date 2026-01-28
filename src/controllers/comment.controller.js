@@ -1,96 +1,220 @@
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
+
 import { Comment } from "../models/comment.model.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import { Video } from "../models/video.model.js";
+import { Like } from "../models/like.model.js";
+import {
+    ApiError,
+    BadRequestError,
+    NotFoundError,
+    ForbiddenError,
+} from "../utils/ApiError.js";
+import { ApiResponse, PaginationBuilder } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { PaginationDefaults } from "../constants.js";
 
-const getVideoComments = asyncHandler(async (req, res) => {
-    const { videoId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    if (!mongoose.Types.ObjectId.isValid(videoId)) {
-        throw new ApiError(400, "Invalid video ID");
+class CommentController {
+    static #validateObjectId(id, fieldName = "ID") {
+        if (!id || !isValidObjectId(id)) {
+            throw new BadRequestError(`Invalid ${fieldName}`);
+        }
     }
 
-    const comments = await Comment.find({ videoId })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .sort({ createdAt: -1 });
-
-    const totalComments = await Comment.countDocuments({ videoId });
-
-    res.status(200).json(
-        new ApiResponse(
-            200,
-            { comments, totalComments },
-            "Comments fetched successfully"
-        )
-    );
-});
-
-const addComment = asyncHandler(async (req, res) => {
-    const { videoId } = req.params;
-    const { content, userId } = req.body;
-
-    if (
-        !mongoose.Types.ObjectId.isValid(videoId) ||
-        !mongoose.Types.ObjectId.isValid(userId)
-    ) {
-        throw new ApiError(400, "Invalid video ID or user ID");
+    static async #findCommentOrFail(commentId) {
+        const comment = await Comment.findById(commentId);
+        if (!comment) {
+            throw new NotFoundError("Comment", commentId);
+        }
+        return comment;
     }
 
-    const comment = new Comment({
-        videoId,
-        userId,
-        content,
+    static #verifyOwnership(comment, userId) {
+        if (comment.owner.toString() !== userId.toString()) {
+            throw new ForbiddenError(
+                "You are not authorized to modify this comment"
+            );
+        }
+    }
+
+    static getVideoComments = asyncHandler(async (req, res) => {
+        const { videoId } = req.params;
+        const {
+            page = PaginationDefaults.PAGE,
+            limit = PaginationDefaults.LIMIT,
+        } = req.query;
+
+        CommentController.#validateObjectId(videoId, "video ID");
+
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(
+            Math.max(1, parseInt(limit, 10)),
+            PaginationDefaults.MAX_LIMIT
+        );
+
+        const pipeline = [
+            { $match: { video: new mongoose.Types.ObjectId(videoId) } },
+            { $sort: { createdAt: -1 } },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                username: 1,
+                                fullName: 1,
+                                avatar: 1,
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                $lookup: {
+                    from: "likes",
+                    localField: "_id",
+                    foreignField: "comment",
+                    as: "likes",
+                },
+            },
+            {
+                $addFields: {
+                    owner: { $first: "$owner" },
+                    likesCount: { $size: "$likes" },
+                    isLiked: req.user
+                        ? {
+                              $in: [
+                                  new mongoose.Types.ObjectId(req.user._id),
+                                  "$likes.likedBy",
+                              ],
+                          }
+                        : false,
+                },
+            },
+            { $project: { likes: 0 } },
+        ];
+
+        const totalDocs = await Comment.countDocuments({
+            video: new mongoose.Types.ObjectId(videoId),
+        });
+
+        pipeline.push(
+            { $skip: (pageNum - 1) * limitNum },
+            { $limit: limitNum }
+        );
+
+        const comments = await Comment.aggregate(pipeline);
+
+        const pagination = new PaginationBuilder()
+            .setPage(pageNum)
+            .setLimit(limitNum)
+            .setTotalDocs(totalDocs)
+            .build();
+
+        return res
+            .status(200)
+            .json(
+                ApiResponse.paginated(
+                    comments,
+                    pagination,
+                    "Comments fetched successfully"
+                )
+            );
     });
 
-    await comment.save();
+    static addComment = asyncHandler(async (req, res) => {
+        const { videoId } = req.params;
+        const { content } = req.body;
 
-    res.status(201).json(
-        new ApiResponse(201, comment, "Comment added successfully")
-    );
-});
+        CommentController.#validateObjectId(videoId, "video ID");
 
-const updateComment = asyncHandler(async (req, res) => {
-    const { commentId } = req.params;
-    const { content } = req.body;
+        if (!content?.trim()) {
+            throw new BadRequestError("Comment content is required");
+        }
 
-    if (!mongoose.Types.ObjectId.isValid(commentId)) {
-        throw new ApiError(400, "Invalid comment ID");
-    }
+        const video = await Video.findById(videoId);
+        if (!video) {
+            throw new NotFoundError("Video", videoId);
+        }
 
-    const comment = await Comment.findByIdAndUpdate(
-        commentId,
-        { content },
-        { new: true, runValidators: true }
-    );
+        const comment = await Comment.create({
+            content: content.trim(),
+            video: videoId,
+            owner: req.user._id,
+        });
 
-    if (!comment) {
-        throw new ApiError(404, "Comment not found");
-    }
+        const createdComment = await Comment.findById(comment._id).populate({
+            path: "owner",
+            select: "_id username fullName avatar",
+        });
 
-    res.status(200).json(
-        new ApiResponse(200, comment, "Comment updated successfully")
-    );
-});
+        return res
+            .status(201)
+            .json(
+                ApiResponse.created(
+                    createdComment,
+                    "Comment added successfully"
+                )
+            );
+    });
 
-const deleteComment = asyncHandler(async (req, res) => {
-    const { commentId } = req.params;
+    static updateComment = asyncHandler(async (req, res) => {
+        const { commentId } = req.params;
+        const { content } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(commentId)) {
-        throw new ApiError(400, "Invalid comment ID");
-    }
+        CommentController.#validateObjectId(commentId, "comment ID");
 
-    const comment = await Comment.findByIdAndDelete(commentId);
+        if (!content?.trim()) {
+            throw new BadRequestError("Comment content is required");
+        }
 
-    if (!comment) {
-        throw new ApiError(404, "Comment not found");
-    }
+        const comment = await CommentController.#findCommentOrFail(commentId);
+        CommentController.#verifyOwnership(comment, req.user._id);
 
-    res.status(200).json(
-        new ApiResponse(200, {}, "Comment deleted successfully")
-    );
-});
+        const updatedComment = await Comment.findByIdAndUpdate(
+            commentId,
+            { $set: { content: content.trim() } },
+            { new: true, runValidators: true }
+        ).populate({
+            path: "owner",
+            select: "_id username fullName avatar",
+        });
 
-export { getVideoComments, addComment, updateComment, deleteComment };
+        return res
+            .status(200)
+            .json(
+                ApiResponse.success(
+                    updatedComment,
+                    "Comment updated successfully"
+                )
+            );
+    });
+
+    static deleteComment = asyncHandler(async (req, res) => {
+        const { commentId } = req.params;
+
+        CommentController.#validateObjectId(commentId, "comment ID");
+
+        const comment = await CommentController.#findCommentOrFail(commentId);
+        CommentController.#verifyOwnership(comment, req.user._id);
+
+        await Promise.all([
+            Comment.findByIdAndDelete(commentId),
+            Like.deleteMany({ comment: commentId }),
+        ]);
+
+        return res
+            .status(200)
+            .json(ApiResponse.success({}, "Comment deleted successfully"));
+    });
+}
+
+export const getVideoComments = CommentController.getVideoComments;
+export const addComment = CommentController.addComment;
+export const updateComment = CommentController.updateComment;
+export const deleteComment = CommentController.deleteComment;
+
+export { CommentController };

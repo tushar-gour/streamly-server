@@ -1,218 +1,153 @@
-# Streamly Backend
+# Streamly
 
 [![CI](https://github.com/tushar-gour/streamly-server/actions/workflows/ci.yml/badge.svg)](https://github.com/tushar-gour/streamly-server/actions/workflows/ci.yml)
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-API-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-BullMQ-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-6BA539?logo=openapiinitiative&logoColor=white)
+![License](https://img.shields.io/badge/License-ISC-blue)
 
-Streamly is a production-grade video platform backend built as a senior backend
-engineering portfolio project. It started as a YouTube-style API and now
-demonstrates clean architecture, PostgreSQL persistence, JWT sessions, RBAC,
-Redis, BullMQ workers, structured logging, OpenAPI documentation, Docker,
-Nginx, automated tests, and GitHub Actions CI.
+Production-grade video platform backend, built to demonstrate senior backend
+architecture, secure authentication, authorization, background jobs,
+observability, testing, containerized runtime, and API documentation.
 
-The project is not claimed as a live production deployment. The repository is
-deployment-ready at the Docker Compose level, with `streamly.zytheran.me`
-prepared as the planned HTTP host. HTTPS, DNS automation, cloud provisioning,
-and deployment automation are intentionally deferred.
+Streamly is a YouTube-inspired backend API. It is not a clone of YouTube, and
+it is not presented as a live hosted product. The repository is a complete
+backend engineering portfolio project with a production-style local runtime and
+deployment-ready documentation.
 
-## Contents
+**Business route count:** `42`  
+**Prepared domain:** `streamly.zytheran.me`  
+**Runtime shape:** `Nginx -> Express API -> PostgreSQL / Redis / BullMQ worker`
 
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Production Features](#production-features)
-- [System Diagram](#system-diagram)
-- [Quick Start](#quick-start)
-- [Docker Runtime](#docker-runtime)
-- [API Documentation](#api-documentation)
-- [Testing And CI](#testing-and-ci)
-- [Repository Structure](#repository-structure)
-- [Useful Commands](#useful-commands)
-- [Domain Preparation](#domain-preparation)
-- [Known Limitations](#known-limitations)
-- [Documentation](#documentation)
+---
 
-## Tech Stack
+## Quick Links
 
-| Area | Technology |
+| Resource | Link |
 | --- | --- |
-| Runtime | Node.js, Express.js, JavaScript ES Modules |
-| Database | PostgreSQL, Prisma |
-| Cache and queues | Redis, BullMQ |
-| Auth | JWT access tokens, refresh token rotation, persistent sessions |
-| Authorization | RBAC, permissions, ownership policies |
-| Security | Helmet, CORS hardening, rate limiting, sanitization, secure cookies |
-| Uploads | Multer, Cloudinary |
-| Observability | Pino structured logs, request IDs, correlation IDs, audit logs |
-| Docs | OpenAPI 3.1, Swagger UI, Postman collection |
-| Testing | Vitest, Supertest, coverage |
-| Runtime | Docker, Docker Compose, Nginx reverse proxy |
-| CI | GitHub Actions |
+| API guide | [docs/API.md](docs/API.md) |
+| Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| System design | [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) |
+| Security | [docs/SECURITY.md](docs/SECURITY.md) |
+| Runbook | [docs/RUNBOOK.md](docs/RUNBOOK.md) |
+| Deployment preparation | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Environment variables | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) |
+| Testing | [docs/TESTING.md](docs/TESTING.md) |
+| OpenAPI source | [src/docs/openapi/openapi-document.js](src/docs/openapi/openapi-document.js) |
+| Postman collection | [docs/postman/streamly.postman_collection.json](docs/postman/streamly.postman_collection.json) |
 
-## Architecture
+---
 
-Streamly follows clean architecture boundaries:
+## Why This Project Stands Out
+
+Streamly is designed as a flagship backend portfolio project, not a tutorial
+API. It shows production backend judgment across architecture, security,
+runtime operations, and developer experience.
+
+| Strength | What it demonstrates |
+| --- | --- |
+| Clean Architecture | Controllers stay thin, services own workflows, repositories isolate persistence |
+| PostgreSQL + Prisma | Relational schema, migrations, constraints, repository-backed data access |
+| Production Auth | JWT access tokens, refresh token rotation, hashed refresh tokens, persistent sessions |
+| Authorization | RBAC roles, permissions, user-role mappings, ownership policies |
+| Redis + BullMQ | Cache foundation, queue infrastructure, separate worker runtime |
+| Security Hardening | Helmet, CORS, rate limits, sanitization, secure cookies, trusted proxy |
+| Observability | Pino JSON logs, request IDs, correlation IDs, redaction, audit log foundation |
+| Docker Runtime | App, worker, PostgreSQL, Redis, and Nginx in Docker Compose |
+| Testing Foundation | Vitest, Supertest, API contract tests, coverage, guarded DB integration tests |
+| API Documentation | OpenAPI 3.1, Swagger UI, Postman collection |
+| CI/CD Foundation | GitHub Actions checks quality, tests, OpenAPI, Prisma, and Docker build |
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart LR
+    Client["Client / Swagger / Postman"] --> Nginx["Nginx reverse proxy"]
+    Nginx --> API["Express API"]
+    API --> Middleware["Security, auth, RBAC, logging"]
+    Middleware --> Services["Application services"]
+    Services --> Repositories["Repository contracts"]
+    Repositories --> Prisma["Prisma repositories"]
+    Prisma --> Postgres["PostgreSQL"]
+    Services --> Cache["Redis cache"]
+    Services --> Queues["BullMQ queues"]
+    Queues --> Worker["Worker service"]
+    Worker --> Redis["Redis"]
+    Worker --> Postgres
+    API --> Cloudinary["Cloudinary media storage"]
+```
+
+Core dependency direction:
 
 ```txt
 Presentation -> Application Services -> Domain Contracts -> Infrastructure
 ```
 
-Controllers stay thin. Services orchestrate use cases. Repositories hide Prisma.
-Infrastructure owns PostgreSQL, Redis, BullMQ, Cloudinary, logging, and Docker
-runtime integration.
+Detailed architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-```mermaid
-flowchart LR
-    Client["Client or Swagger UI"] --> Nginx["Nginx reverse proxy"]
-    Nginx --> API["Express API"]
-    API --> Services["Application services"]
-    Services --> Repositories["Repository contracts"]
-    Repositories --> Prisma["Prisma repositories"]
-    Prisma --> Postgres["PostgreSQL"]
-    Services --> Redis["Redis cache"]
-    Services --> Queues["BullMQ producers"]
-    Queues --> Worker["Worker process"]
-    Worker --> Postgres
-    Worker --> Redis
-    API --> Cloudinary["Cloudinary adapter"]
-```
+---
 
-More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Feature Matrix
 
-## Production Features
+| Area | Implemented | Why it matters |
+| --- | --- | --- |
+| Architecture | Clean architecture, DI container, repositories | Keeps system maintainable and testable |
+| Authentication | JWT, refresh rotation, sessions | Supports production-grade login lifecycle |
+| Authorization | RBAC, permissions, ownership policies | Prevents privilege escalation and cross-user access |
+| Database | PostgreSQL, Prisma, migrations | Provides relational integrity and repeatable schema changes |
+| Cache | Redis cache abstraction | Speeds selected public reads without changing API behavior |
+| Jobs | BullMQ queues and worker | Moves background-ready work outside request lifecycle |
+| Security | Helmet, CORS, rate limits, sanitization | Hardens Express runtime |
+| Observability | Pino logs, request IDs, redaction | Makes runtime diagnosable without leaking secrets |
+| Testing | Unit, service, API, guarded integration tests | Protects behavior during future changes |
+| API Docs | Swagger UI, OpenAPI JSON, Postman | Makes API review and testing easy |
+| Docker | App, worker, Postgres, Redis, Nginx | Reproducible local production-style runtime |
+| CI/CD | GitHub Actions quality pipeline | Verifies every push and pull request |
+| Nginx | Reverse proxy and domain preparation | Prepares hosted URL routing |
 
-| Category | Status |
+---
+
+## Tech Stack
+
+| Category | Technologies |
 | --- | --- |
-| Clean architecture | Complete |
-| PostgreSQL and Prisma migration | Complete |
-| Docker Compose runtime | Complete |
-| Nginx reverse proxy | Complete |
-| JWT authentication | Complete |
-| Refresh token rotation | Complete |
-| Persistent sessions | Complete |
-| Email verification token infrastructure | Complete |
-| Real email delivery | Deferred |
-| RBAC and ownership policies | Complete |
-| Redis infrastructure | Complete |
-| Redis caching | Complete for selected public reads |
-| BullMQ workers | Complete |
-| Thumbnail processing | Queue placeholder only |
-| Security middleware | Complete |
-| Structured logging | Complete |
-| OpenAPI docs | Complete |
-| Tests and coverage | Complete |
-| GitHub Actions CI | Complete |
-| Live cloud deployment | Deferred |
-| HTTPS automation | Deferred |
+| Backend | Node.js, Express.js, JavaScript ES Modules |
+| Database | PostgreSQL, Prisma |
+| Cache | Redis |
+| Jobs | BullMQ |
+| Authentication | JWT, bcrypt, persistent sessions |
+| Authorization | RBAC, permissions, ownership policies |
+| Security | Helmet, CORS, express-rate-limit, sanitization, secure cookies |
+| Media | Multer, Cloudinary |
+| Logging | Pino, request IDs, correlation IDs |
+| Testing | Vitest, Supertest, coverage |
+| Documentation | OpenAPI 3.1, Swagger UI, Postman |
+| DevOps | Docker, Docker Compose, Nginx, GitHub Actions |
 
-## Core API Modules
+---
 
-- Healthcheck
-- Users and authentication
-- Videos
-- Comments
-- Likes
-- Playlists
-- Subscriptions
-- Dashboard
-- Swagger/OpenAPI docs
-
-Business route count: `42`.
-
-Docs routes are separate:
-
-```txt
-GET /api/v1/docs
-GET /api/v1/docs/openapi.json
-```
-
-## Security Summary
-
-- Passwords are hashed.
-- Refresh tokens are hashed at rest.
-- Refresh tokens rotate on refresh.
-- Sessions are persisted in PostgreSQL.
-- Logout revokes current session.
-- Logout-all revokes all sessions.
-- RBAC permissions protect sensitive actions.
-- Ownership policies protect user-owned resources.
-- Helmet adds API-safe security headers.
-- CORS is centralized and environment-aware.
-- Rate limiting protects global and auth routes.
-- Request sanitization removes null bytes and prototype pollution keys.
-- Logs redact secrets, tokens, cookies, passwords, and connection strings.
-
-Security details: [docs/SECURITY.md](docs/SECURITY.md).
-
-## Performance Summary
-
-- Redis-backed cache abstraction.
-- Public video list caching.
-- Anonymous video comment caching.
-- Namespace-scoped cache invalidation.
-- Compression enabled.
-- Prisma relation counts reduce payload and query overhead.
-- Cursor pagination is not claimed; existing page/limit behavior is preserved.
-
-## Background Jobs
-
-BullMQ queues:
-
-```txt
-streamly-email
-streamly-notification
-streamly-thumbnail
-streamly-cleanup
-streamly-verification
-```
-
-Worker runtime is separate from the Express API. Email delivery and
-notifications currently use infrastructure stubs. No external email provider is
-configured.
-
-## Quick Start
+## Local Development Quickstart
 
 Prerequisites:
 
-```txt
-Node.js 20 recommended
-PostgreSQL
-Redis
-Cloudinary account for real uploads
-```
-
-Install dependencies:
+- Node.js 20 recommended
+- PostgreSQL
+- Redis
+- Cloudinary account for real upload workflows
 
 ```bash
+git clone https://github.com/tushar-gour/streamly-server.git
+cd streamly-server
 npm install
-```
-
-Create local environment:
-
-```bash
 cp .env.example .env
-```
-
-Fill PostgreSQL, Redis, JWT, RBAC, and Cloudinary values.
-
-Generate Prisma client:
-
-```bash
 npm run prisma:generate
-```
-
-Apply migrations:
-
-```bash
 npm run prisma:migrate
-```
-
-Seed RBAC roles and permissions:
-
-```bash
 npm run seed:rbac
-```
-
-Start API:
-
-```bash
 npm start
 ```
 
@@ -222,48 +157,44 @@ Development mode:
 npm run dev
 ```
 
+Healthcheck:
+
+```bash
+curl http://localhost:8000/api/v1/healthcheck
+```
+
+Environment guide: [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
+
+---
+
 ## Docker Runtime
 
-Create Docker environment:
+Streamly includes a full local Docker Compose runtime:
+
+| Service | Purpose |
+| --- | --- |
+| `app` | Express API and Prisma migration startup |
+| `worker` | BullMQ background job worker |
+| `postgres` | PostgreSQL 16 database |
+| `redis` | Redis cache and queue backend |
+| `nginx` | Reverse proxy for production-style routing |
+
+Start Docker runtime:
 
 ```bash
 cp .env.docker.example .env.docker
-```
-
-Fill JWT and Cloudinary placeholders. Keep Docker service hostnames:
-
-```txt
-DATABASE_URL -> postgres
-REDIS_URL    -> redis
-```
-
-Start runtime:
-
-```bash
 docker compose up --build
 ```
 
-Services:
+Useful URLs:
 
-```txt
-app
-worker
-postgres
-redis
-nginx
-```
-
-Local URLs:
-
-```txt
-Direct API:      http://localhost:8000
-Nginx proxy:     http://localhost:8080
-Health direct:   http://localhost:8000/api/v1/healthcheck
-Health proxy:    http://localhost:8080/api/v1/healthcheck
-Swagger direct:  http://localhost:8000/api/v1/docs
-Swagger proxy:   http://localhost:8080/api/v1/docs
-OpenAPI proxy:   http://localhost:8080/api/v1/docs/openapi.json
-```
+| Target | URL |
+| --- | --- |
+| Direct API | `http://localhost:8000` |
+| Nginx proxy | `http://localhost:8080` |
+| Health through Nginx | `http://localhost:8080/api/v1/healthcheck` |
+| Swagger through Nginx | `http://localhost:8080/api/v1/docs` |
+| OpenAPI through Nginx | `http://localhost:8080/api/v1/docs/openapi.json` |
 
 Verify Docker runtime:
 
@@ -272,7 +203,9 @@ npm run verify:docker
 npm run verify:jobs
 ```
 
-Runbook: [docs/RUNBOOK.md](docs/RUNBOOK.md).
+Operational guide: [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
+---
 
 ## API Documentation
 
@@ -290,17 +223,67 @@ http://localhost:8000/api/v1/docs/openapi.json
 http://localhost:8080/api/v1/docs/openapi.json
 ```
 
-Postman collection:
+Postman:
 
 ```txt
 docs/postman/streamly.postman_collection.json
 ```
 
+The API uses bearer access tokens and also supports auth cookies where
+configured. Exact route contracts, request bodies, multipart upload fields,
+pagination behavior, and error shapes are documented in OpenAPI.
+
+Business route count: `42`.
+
 API guide: [docs/API.md](docs/API.md).
+
+---
+
+## Security Highlights
+
+- Short-lived JWT access tokens.
+- Refresh token rotation.
+- Refresh tokens hashed at rest.
+- Persistent PostgreSQL sessions.
+- Current-session logout.
+- Logout-all session revocation.
+- Email verification token infrastructure.
+- RBAC roles and permissions.
+- Centralized ownership policies.
+- Helmet security headers.
+- Environment-aware CORS.
+- Global and auth route rate limiting.
+- Request sanitization against null bytes and prototype pollution keys.
+- Secure cookie configuration.
+- Trusted proxy configuration.
+- Redacted structured logs.
+
+This repository does not claim a formal security audit.
+
+Security details: [docs/SECURITY.md](docs/SECURITY.md).
+
+---
+
+## Background Jobs
+
+BullMQ queues are backed by Redis and processed by a separate worker service.
+
+| Queue | Purpose |
+| --- | --- |
+| `streamly-email` | Email verification job foundation |
+| `streamly-notification` | Notification job foundation |
+| `streamly-thumbnail` | Thumbnail job placeholder |
+| `streamly-cleanup` | Expired auth artifact cleanup |
+| `streamly-verification` | Safe queue verification |
+
+Real email provider integration and real thumbnail generation are intentionally
+deferred production extensions.
+
+---
 
 ## Testing And CI
 
-Local checks:
+Local verification:
 
 ```bash
 npm run format:check
@@ -314,93 +297,72 @@ npm run test:integration
 npm run test:api
 npm run test:coverage
 npm run docs:validate
-npx prisma generate
 npx prisma validate
-docker build -t streamly-server:ci .
+npx prisma generate
 docker compose config
 ```
 
-GitHub Actions runs on `push` to `main` and `pull_request`.
+GitHub Actions runs on:
+
+- push to `main`
+- pull requests
 
 CI jobs:
 
-```txt
-quality
-tests
-docs
-prisma
-docker-build
-```
+| Job | Checks |
+| --- | --- |
+| Quality | format, lint, syntax, smoke, verify, audit report |
+| Tests | Vitest suite, unit, API, integration command, coverage |
+| OpenAPI | docs validation |
+| Prisma | generate and validate |
+| Docker Build | image build and Compose config validation |
 
-Dependency audit is informational and non-blocking because known dependency
-advisories currently exist.
+Database-backed integration tests are guarded and skipped unless explicitly
+enabled with a safe test database.
 
 Testing guide: [docs/TESTING.md](docs/TESTING.md).
 
-## Repository Structure
+---
+
+## Documentation Map
+
+| Document | Purpose |
+| --- | --- |
+| [docs/README.md](docs/README.md) | Documentation index |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Clean architecture and runtime flows |
+| [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) | Requirements, entities, tradeoffs |
+| [docs/SECURITY.md](docs/SECURITY.md) | Auth, RBAC, hardening, limitations |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Operations and troubleshooting |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment preparation checklist |
+| [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Environment variable reference |
+| [docs/TESTING.md](docs/TESTING.md) | Test strategy and commands |
+| [docs/API.md](docs/API.md) | Swagger, Postman, auth, response format |
+| [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Completed roadmap status |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow |
+
+---
+
+## Deployment Readiness
+
+Streamly is prepared for hosted deployment, but this repository does not
+automate cloud provisioning or SSL.
+
+Planned domain:
 
 ```txt
-src/
-  app.js
-  index.js
-  application/services/
-  config/
-  core/container/
-  domain/repositories/
-  infrastructure/
-    cache/
-    cloudinary/
-    database/
-    jobs/
-    logger/
-    redis/
-    repositories/
-  presentation/
-    controllers/
-    middlewares/
-    routes/
-  shared/
-  workers/
-prisma/
-docs/
-tests/
-scripts/
-nginx/
-.github/workflows/
+streamly.zytheran.me
 ```
 
-## Useful Commands
-
-```bash
-npm run format
-npm run format:check
-npm run lint
-npm run syntax
-npm run smoke
-npm run verify
-npm run verify:live
-npm run verify:docker
-npm run verify:jobs
-npm test
-npm run test:coverage
-npm run docs:validate
-npm run seed:rbac
-npm run jobs:worker
-npm run prisma:generate
-npm run prisma:migrate
-npm run docker:up
-npm run docker:down
-```
-
-## Domain Preparation
-
-Planned host:
+Planned HTTP routes after DNS:
 
 ```txt
-http://streamly.zytheran.me
+http://streamly.zytheran.me/api/v1/healthcheck
+http://streamly.zytheran.me/api/v1/docs
+http://streamly.zytheran.me/api/v1/docs/openapi.json
 ```
 
-DNS record needed before the domain works:
+DNS record needed:
 
 ```txt
 Host: streamly
@@ -409,41 +371,94 @@ Value: SERVER_PUBLIC_IP
 TTL: Auto/default
 ```
 
-Nginx already accepts:
+HTTPS, Certbot, automatic certificate renewal, and server provisioning are
+future deployment tasks.
+
+Deployment guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+---
+
+## Repository Structure
 
 ```txt
-localhost
-streamly.zytheran.me
+src/
+  application/services/      business workflows
+  config/                    centralized environment config
+  core/container/            dependency composition
+  domain/repositories/       repository contracts
+  infrastructure/            Prisma, Redis, BullMQ, Cloudinary, logging
+  presentation/              routes, controllers, middleware
+  shared/                    responses, errors, validators, helpers
+  workers/                   worker entrypoint
+prisma/                      schema and migrations
+tests/                       unit, service, API, integration tests
+docs/                        architecture and operations docs
+scripts/                     verification and seed scripts
+nginx/                       reverse proxy config
+.github/workflows/           CI pipeline
 ```
 
-HTTPS, Certbot, DNS provider automation, and cloud provisioning are not included
-in this repository yet.
+---
 
-Deployment preparation: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+## Commands Reference
+
+| Command | Purpose |
+| --- | --- |
+| `npm run format` | Apply Prettier to supported files |
+| `npm run format:check` | Check formatting |
+| `npm run lint` | Run ESLint |
+| `npm run syntax` | Check JavaScript syntax |
+| `npm run smoke` | Import app and verify route registration |
+| `npm run verify` | Run local quality gate |
+| `npm test` | Run Vitest suite |
+| `npm run test:unit` | Run unit and service tests |
+| `npm run test:integration` | Run guarded integration tests |
+| `npm run test:api` | Run API contract tests |
+| `npm run test:coverage` | Generate coverage report |
+| `npm run docs:validate` | Validate OpenAPI document |
+| `npm run verify:docker` | Verify Docker runtime |
+| `npm run verify:jobs` | Verify BullMQ jobs |
+| `npm run seed:rbac` | Seed roles and permissions |
+| `npm run jobs:worker` | Start worker locally |
+| `npm run prisma:generate` | Generate Prisma client |
+| `npm run prisma:migrate` | Run local Prisma migration |
+| `npm run docker:up` | Start Docker runtime |
+| `npm run docker:down` | Stop Docker runtime |
+
+---
 
 ## Known Limitations
 
-- No live deployment is claimed.
+- Domain is prepared, not verified as live.
 - HTTPS is not configured.
-- Real email delivery is not configured.
-- Thumbnail processing is a queue placeholder.
+- Real email provider is not integrated.
+- Real thumbnail generation is deferred.
 - Redis-backed distributed rate limiting is not implemented.
-- External monitoring, tracing, and alerting are not integrated.
-- Database-backed integration tests are guarded and skipped by default.
-- Dependency audit currently reports advisories.
-- No standalone `LICENSE` file is included yet; package metadata currently uses
-  `ISC`.
+- External monitoring and tracing are not integrated.
+- Database-backed integration tests are guarded by default.
+- Dependency advisories remain and are reported by CI.
+- No formal security audit has been completed.
+- No standalone `LICENSE` file exists; package metadata currently uses `ISC`.
 
-## Documentation
+---
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [System Design](docs/SYSTEM_DESIGN.md)
-- [Security](docs/SECURITY.md)
-- [Runbook](docs/RUNBOOK.md)
-- [Deployment Preparation](docs/DEPLOYMENT.md)
-- [Environment Variables](docs/ENVIRONMENT.md)
-- [Testing](docs/TESTING.md)
-- [API Guide](docs/API.md)
-- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
-- [Contributing](CONTRIBUTING.md)
-- [Changelog](CHANGELOG.md)
+## Future Improvements
+
+- VPS deployment workflow.
+- HTTPS with Certbot or managed certificates.
+- Real email provider integration.
+- Real thumbnail processing pipeline.
+- Dependency advisory remediation.
+- OpenTelemetry metrics and traces.
+- External monitoring and alerting.
+- Broader database-backed integration coverage.
+- Higher coverage targets.
+- Backup and rollback automation.
+
+---
+
+## Project Status
+
+All planned roadmap phases are complete. The repository is ready for portfolio
+review, backend architecture review, DevOps review, and future deployment work.
+

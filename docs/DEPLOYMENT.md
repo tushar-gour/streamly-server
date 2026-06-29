@@ -13,6 +13,8 @@ automation.
 - Nginx reverse proxy on HTTP.
 - GitHub Actions CI.
 - OpenAPI documentation.
+- TypeScript production build to `dist/`.
+- AWS-ready production environment template.
 
 ## Planned Domain
 
@@ -99,8 +101,33 @@ Set production-safe values for:
 - `LOG_LEVEL`
 - `RATE_LIMIT_MAX`
 - `AUTH_RATE_LIMIT_MAX`
+- `MEDIA_STORAGE_PROVIDER`
+- `VIDEO_STREAMING_ENABLED`
+- `AWS_REGION`
+- `AWS_S3_BUCKET`
 
 Do not use placeholder secrets in production.
+
+Start from:
+
+```bash
+cp .env.production.example .env.production
+```
+
+Then copy real values manually on the production host. Do not commit the real
+file.
+
+## Video Streaming
+
+The API exposes:
+
+```txt
+GET /api/v1/videos/{videoId}/stream
+```
+
+The endpoint supports HTTP Range requests for large video playback and proxies
+trusted stored media URLs. Nginx forwards Range and If-Range headers and keeps
+proxy buffering disabled for streaming behavior.
 
 ## Migration Checklist
 

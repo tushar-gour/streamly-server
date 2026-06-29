@@ -2,6 +2,29 @@
 
 All notable changes to Streamly are documented here.
 
+## [1.1.0] - 2026-06-29
+
+### TypeScript
+
+- Migrated runtime source and tests from JavaScript files to TypeScript files.
+- Added TypeScript config, typecheck script, and production build script.
+- Updated Docker and CI to build and verify TypeScript.
+
+### Video Streaming
+
+- Added `GET /api/v1/videos/{videoId}/stream`.
+- Added HTTP Range request support for large video playback.
+- Added `206 Partial Content` and `416 Range Not Satisfiable` handling.
+- Added trusted media streaming provider abstraction for Cloudinary-compatible
+  URLs.
+- Updated OpenAPI and Postman documentation.
+
+### Production Preparation
+
+- Added `.env.production.example`.
+- Added media storage and AWS/S3 readiness placeholders.
+- Updated environment, deployment, runbook, API, and architecture docs.
+
 ## [1.0.0] - 2026-06-29
 
 ### Architecture

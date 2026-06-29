@@ -9,6 +9,7 @@ common failures.
 npm install
 cp .env.example .env
 npm run prisma:generate
+npm run build
 npm run prisma:migrate
 npm run seed:rbac
 npm start
@@ -158,6 +159,8 @@ curl -H "Host: streamly.zytheran.me" http://localhost:8080/api/v1/healthcheck
 npm run format
 npm run format:check
 npm run lint
+npm run typecheck
+npm run build
 npm run syntax
 npm run smoke
 npm run verify

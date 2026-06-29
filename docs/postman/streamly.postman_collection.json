@@ -78,7 +78,11 @@
                                     "value": "replace_with_password",
                                     "type": "text"
                                 },
-                                { "key": "avatar", "type": "file", "src": [] },
+                                {
+                                    "key": "avatar",
+                                    "type": "file",
+                                    "src": []
+                                },
                                 {
                                     "key": "coverImage",
                                     "type": "file",
@@ -161,6 +165,20 @@
                     "request": {
                         "method": "GET",
                         "url": "{{baseUrl}}/api/v1/videos/{{videoId}}"
+                    }
+                },
+                {
+                    "name": "Stream Video",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Range",
+                                "value": "bytes=0-1048575"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/videos/{{videoId}}/stream",
+                        "description": "Streams trusted video media through the API with HTTP Range support."
                     }
                 },
                 {

@@ -2,10 +2,7 @@ import { readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 
-const sourceRoot = path.resolve("src");
 const scriptRoot = path.resolve("scripts");
-const testRoot = path.resolve("tests");
-const configFiles = [path.resolve("vitest.config.js")];
 
 const collectJavaScriptFiles = async (directory) => {
     const entries = await readdir(directory, { withFileTypes: true });
@@ -48,15 +45,11 @@ const runNodeCheck = (filePath) =>
         });
     });
 
-const files = [
-    ...(await collectJavaScriptFiles(sourceRoot)),
-    ...(await collectJavaScriptFiles(scriptRoot)),
-    ...(await collectJavaScriptFiles(testRoot)),
-    ...configFiles,
-];
+const files = [...(await collectJavaScriptFiles(scriptRoot))];
 
 for (const file of files) {
     await runNodeCheck(file);
 }
 
-console.log(`Syntax check passed for ${files.length} files.`);
+console.log(`JavaScript syntax check passed for ${files.length} scripts.`);
+console.log("TypeScript syntax is checked by npm run typecheck.");

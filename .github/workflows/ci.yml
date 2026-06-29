@@ -18,6 +18,13 @@ env:
   CACHE_ENABLED: "true"
   DISABLE_RATE_LIMITING_IN_TEST: "true"
   MOCK_CLOUDINARY: "true"
+  MEDIA_STORAGE_PROVIDER: cloudinary
+  VIDEO_STREAMING_ENABLED: "true"
+  AWS_REGION: ap-south-1
+  AWS_S3_BUCKET: ""
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_S3_PUBLIC_BASE_URL: ""
   CORS_ORIGIN: "*"
   CORS_CREDENTIALS: "true"
   TRUST_PROXY: "false"
@@ -59,6 +66,12 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
 
       - name: Syntax check
         run: npm run syntax

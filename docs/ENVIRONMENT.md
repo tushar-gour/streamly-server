@@ -1,7 +1,9 @@
 # Streamly Environment Variables
 
-Use `.env.example` for local development and `.env.docker.example` for Docker.
-Never commit real `.env` or `.env.docker` files.
+Use `.env.example` for local development, `.env.docker.example` for Docker,
+and `.env.production.example` as the production template for manual AWS
+deployment preparation. Never commit real `.env`, `.env.docker`, or
+`.env.production` files.
 
 ## Server
 
@@ -134,6 +136,30 @@ Use long random secrets in production.
 | `MOCK_CLOUDINARY` | Optional | `true` | Test/local mock switch |
 
 Do not use real Cloudinary secrets in examples.
+
+## Media Storage And Streaming
+
+| Variable | Required | Safe local example | Purpose |
+| --- | --- | --- | --- |
+| `MEDIA_STORAGE_PROVIDER` | Optional | `cloudinary` | Active media provider |
+| `VIDEO_STREAMING_ENABLED` | Optional | `true` | Enables HTTP Range stream endpoint |
+
+The active provider remains Cloudinary. The stream endpoint proxies trusted
+stored media URLs and supports Range responses when the upstream provider
+supports them.
+
+## AWS/S3 Readiness
+
+| Variable | Required | Safe local example | Purpose |
+| --- | --- | --- | --- |
+| `AWS_REGION` | Optional | `ap-south-1` | Future AWS region placeholder |
+| `AWS_S3_BUCKET` | Optional | empty | Future S3 bucket placeholder |
+| `AWS_ACCESS_KEY_ID` | Optional | empty | Future AWS access key placeholder |
+| `AWS_SECRET_ACCESS_KEY` | Optional | empty | Future AWS secret placeholder |
+| `AWS_S3_PUBLIC_BASE_URL` | Optional | empty | Future S3 public base URL |
+
+AWS values are placeholders only. S3 storage is not active unless a future S3
+provider is implemented and enabled.
 
 ## CI Notes
 

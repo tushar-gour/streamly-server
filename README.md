@@ -9,7 +9,7 @@
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-6BA539?logo=openapiinitiative&logoColor=white)
 ![License](https://img.shields.io/badge/License-ISC-blue)
 
-Production-grade video platform backend, built to demonstrate senior backend
+Production-grade TypeScript video platform backend, built to demonstrate senior backend
 architecture, secure authentication, authorization, background jobs,
 observability, testing, containerized runtime, and API documentation.
 
@@ -18,7 +18,7 @@ it is not presented as a live hosted product. The repository is a complete
 backend engineering portfolio project with a production-style local runtime and
 deployment-ready documentation.
 
-**Business route count:** `42`  
+**Business route count:** `43`  
 **Prepared domain:** `streamly.zytheran.me`  
 **Runtime shape:** `Nginx -> Express API -> PostgreSQL / Redis / BullMQ worker`
 
@@ -36,7 +36,7 @@ deployment-ready documentation.
 | Deployment preparation | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Environment variables | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) |
 | Testing | [docs/TESTING.md](docs/TESTING.md) |
-| OpenAPI source | [src/docs/openapi/openapi-document.js](src/docs/openapi/openapi-document.js) |
+| OpenAPI source | [src/docs/openapi/openapi-document.ts](src/docs/openapi/openapi-document.ts) |
 | Postman collection | [docs/postman/streamly.postman_collection.json](docs/postman/streamly.postman_collection.json) |
 
 ---
@@ -106,6 +106,7 @@ Detailed architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Observability | Pino logs, request IDs, redaction | Makes runtime diagnosable without leaking secrets |
 | Testing | Unit, service, API, guarded integration tests | Protects behavior during future changes |
 | API Docs | Swagger UI, OpenAPI JSON, Postman | Makes API review and testing easy |
+| Video Streaming | HTTP Range endpoint with 206/416 handling | Supports large video chunk playback |
 | Docker | App, worker, Postgres, Redis, Nginx | Reproducible local production-style runtime |
 | CI/CD | GitHub Actions quality pipeline | Verifies every push and pull request |
 | Nginx | Reverse proxy and domain preparation | Prepares hosted URL routing |
@@ -116,7 +117,7 @@ Detailed architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 | Category | Technologies |
 | --- | --- |
-| Backend | Node.js, Express.js, JavaScript ES Modules |
+| Backend | Node.js, TypeScript, Express.js, ES Modules |
 | Database | PostgreSQL, Prisma |
 | Cache | Redis |
 | Jobs | BullMQ |
@@ -233,7 +234,15 @@ The API uses bearer access tokens and also supports auth cookies where
 configured. Exact route contracts, request bodies, multipart upload fields,
 pagination behavior, and error shapes are documented in OpenAPI.
 
-Business route count: `42`.
+Business route count: `43`.
+
+Streaming route:
+
+```txt
+GET /api/v1/videos/{videoId}/stream
+```
+
+Send `Range: bytes=0-1048575` for chunked playback. Valid ranges return `206 Partial Content`; invalid ranges return `416 Range Not Satisfiable`.
 
 API guide: [docs/API.md](docs/API.md).
 
@@ -407,7 +416,9 @@ nginx/                       reverse proxy config
 | `npm run format` | Apply Prettier to supported files |
 | `npm run format:check` | Check formatting |
 | `npm run lint` | Run ESLint |
-| `npm run syntax` | Check JavaScript syntax |
+| `npm run typecheck` | Run TypeScript typecheck |
+| `npm run build` | Build TypeScript into `dist` |
+| `npm run syntax` | Check JavaScript helper script syntax |
 | `npm run smoke` | Import app and verify route registration |
 | `npm run verify` | Run local quality gate |
 | `npm test` | Run Vitest suite |
@@ -433,6 +444,7 @@ nginx/                       reverse proxy config
 - HTTPS is not configured.
 - Real email provider is not integrated.
 - Real thumbnail generation is deferred.
+- S3 storage is prepared through env placeholders, not active by default.
 - Redis-backed distributed rate limiting is not implemented.
 - External monitoring and tracing are not integrated.
 - Database-backed integration tests are guarded by default.
@@ -461,4 +473,3 @@ nginx/                       reverse proxy config
 
 All planned roadmap phases are complete. The repository is ready for portfolio
 review, backend architecture review, DevOps review, and future deployment work.
-

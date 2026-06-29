@@ -25,7 +25,7 @@ npm run test:coverage
 
 ## Environment Strategy
 
-`tests/setup/test-env.js` sets safe defaults:
+`tests/setup/test-env.ts` sets safe defaults:
 
 - `NODE_ENV=test`
 - test JWT secrets
@@ -102,6 +102,7 @@ API tests cover:
 - oversized payload
 - login failure
 - docs route when enabled
+- video streaming service range behavior
 
 ## Coverage
 

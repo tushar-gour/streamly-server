@@ -142,7 +142,34 @@ Upload fields are documented in OpenAPI. Cloudinary stores uploaded assets.
 - Subscriptions
 - Dashboard
 
-Business route count: `42`.
+Business route count: `43`.
+
+## Video Streaming
+
+```txt
+GET /api/v1/videos/{videoId}/stream
+```
+
+The stream endpoint supports HTTP Range requests for large video playback.
+
+Headers:
+
+- `Range: bytes=0-1048575`
+- `Accept-Ranges: bytes`
+- `Content-Range` on partial responses
+- `Content-Length`
+- `Content-Type`
+
+Expected responses:
+
+- `206 Partial Content` for valid range requests.
+- `200 OK` when a full stream is served.
+- `416 Range Not Satisfiable` for invalid ranges.
+- `401` when private video streaming requires authentication.
+- `403` when the authenticated user does not own the private video and lacks elevated video permission.
+
+The endpoint streams trusted media URLs stored in the database. It does not
+stream arbitrary user-supplied URLs.
 
 ## RBAC Notes
 

@@ -177,7 +177,8 @@ this repository.
 
 ## Tradeoffs
 
-- JavaScript is preserved instead of migrating to TypeScript.
+- Runtime source has been migrated to TypeScript while preserving ES modules.
+- Video streaming uses a trusted media provider abstraction and HTTP Range requests.
 - Docker Compose is used instead of Kubernetes for approachable local runtime.
 - Redis-backed distributed rate limiting is deferred.
 - Email delivery is stubbed to avoid committing provider-specific integration.

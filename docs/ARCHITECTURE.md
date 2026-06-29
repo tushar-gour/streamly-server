@@ -47,8 +47,8 @@ Rules:
 
 ```txt
 src/
-  app.js
-  index.js
+  app.ts
+  index.ts
   application/services/
   config/
   core/container/
@@ -248,7 +248,8 @@ Services:
 
 ## Boundaries Preserved
 
-- API route count remains `42`.
+- API route count is now `43` after adding the video streaming endpoint.
+- Runtime source is TypeScript and builds to `dist/`.
 - Public API response style is preserved.
 - Cloudinary behavior is adapter-based.
 - Smoke import does not start server or connect external services.

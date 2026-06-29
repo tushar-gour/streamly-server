@@ -22,7 +22,7 @@ main
 Business route count:
 
 ```txt
-42
+43
 ```
 
 Prepared domain:
@@ -38,7 +38,7 @@ HTTPS automation is claimed.
 
 - Node.js
 - Express.js
-- JavaScript ES Modules
+- TypeScript ES Modules
 - PostgreSQL
 - Prisma
 - Redis
@@ -75,6 +75,7 @@ HTTPS automation is claimed.
 | Phase 13 | Complete | Nginx reverse proxy and domain preparation |
 | Phase 14 | Complete | GitHub Actions CI pipeline |
 | Phase 15 | Complete | Final documentation and architecture showcase |
+| Post-roadmap Phase 16 | Complete | TypeScript migration, HTTP Range video streaming, production env templates |
 
 ## Global Rules
 
@@ -139,7 +140,7 @@ Expected result:
 - formatting passes
 - lint passes
 - syntax check passes
-- smoke route count remains `42`
+- smoke route count remains `43`
 - tests pass with guarded DB integration skipped unless explicitly enabled
 - OpenAPI validation passes
 - Prisma schema validates
@@ -193,6 +194,6 @@ The roadmap is complete because:
 - local verification passes
 - Docker verification passes
 - jobs verification passes
-- business route count remains `42`
+- business route count remains `43`
 - no secrets are committed
 - no deployment or SSL work is falsely claimed

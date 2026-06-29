@@ -22,6 +22,7 @@ Documentation index for the Streamly backend.
 
 ## Status
 
-All planned phases through Phase 15 are complete. Deployment automation, HTTPS,
-real email delivery, external monitoring, and formal security review remain
-future work.
+All planned phases through Phase 15 are complete. Post-roadmap Phase 16 adds
+TypeScript runtime source, HTTP Range video streaming, and production
+environment templates. Deployment automation, HTTPS, real email delivery,
+external monitoring, and formal security review remain future work.

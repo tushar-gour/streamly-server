@@ -1,5 +1,7 @@
 # Streamly Backend
 
+[![CI](https://github.com/tushar-gour/streamly-server/actions/workflows/ci.yml/badge.svg)](https://github.com/tushar-gour/streamly-server/actions/workflows/ci.yml)
+
 ## Local Setup
 
 Install dependencies:
@@ -93,6 +95,67 @@ CLOUDINARY_API_SECRET=replace_with_api_secret
 ```
 
 Do not commit real `.env` values.
+
+## Continuous Integration
+
+GitHub Actions runs the CI workflow on pull requests and pushes to `main`.
+
+Workflow file:
+
+```txt
+.github/workflows/ci.yml
+```
+
+CI uses Node.js 20 and safe placeholder environment variables. It does not use
+production secrets, real Cloudinary credentials, deployment keys, or production
+database URLs.
+
+CI jobs:
+
+```txt
+quality       npm ci, format check, lint, syntax, smoke, verify
+tests         unit, API, integration, coverage
+docs          OpenAPI validation
+prisma        Prisma generate and schema validation
+docker-build  Docker image build and Docker Compose config validation
+```
+
+The same checks can be run locally:
+
+```bash
+npm run format:check
+npm run lint
+npm run syntax
+npm run smoke
+npm run verify
+npm test
+npm run test:unit
+npm run test:integration
+npm run test:api
+npm run test:coverage
+npm run docs:validate
+npx prisma generate
+npx prisma validate
+docker build -t streamly-server:ci .
+docker compose config
+```
+
+Database-backed integration tests remain guarded in CI. The default workflow
+sets `RUN_DATABASE_TESTS=false`, so integration tests run deterministically
+without a live PostgreSQL service. Enable database-backed tests only with a
+dedicated test database URL containing `test` or `streamly_test`.
+
+Docker validation builds the API image and validates Compose syntax. Full Docker
+runtime verification remains a local command:
+
+```bash
+npm run verify:docker
+npm run verify:jobs
+```
+
+Dependency audit is informational. The CI workflow runs `npm audit
+--audit-level=high` with `continue-on-error` so known dependency advisories are
+reported without blocking unrelated pipeline checks.
 
 ## Testing Foundation
 

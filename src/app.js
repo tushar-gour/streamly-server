@@ -3,20 +3,30 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
-import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
 
-import { ApiError } from "./utils/ApiError.js";
-import { ApiResponse } from "./utils/ApiResponse.js";
-import { HttpStatus } from "./constants.js";
+import { ApiError } from "./shared/errors/api-error.js";
+import { ApiResponse } from "./shared/responses/api-response.js";
+import { HttpStatus } from "./shared/constants/index.js";
+import { appConfig, isProduction } from "./config/env.js";
+import { openApiDocument } from "./docs/openapi/openapi-document.js";
+import { logError } from "./infrastructure/logger/logger.js";
+import { httpLoggerMiddleware } from "./presentation/middlewares/http-logger.middleware.js";
+import { requestContextMiddleware } from "./presentation/middlewares/request-context.middleware.js";
+import {
+    getHelmetOptions,
+    globalApiRateLimiter,
+    sanitizeRequest,
+} from "./presentation/middlewares/security.middleware.js";
 
-import healthcheckRouter from "./routes/healthcheck.routes.js";
-import userRouter from "./routes/user.routes.js";
-import videoRouter from "./routes/video.routes.js";
-import commentRouter from "./routes/comment.routes.js";
-import dashboardRouter from "./routes/dashboard.routes.js";
-import likeRouter from "./routes/like.routes.js";
-import playlistRouter from "./routes/playlist.routes.js";
-import subscriptionRouter from "./routes/subscription.routes.js";
+import healthcheckRouter from "./presentation/routes/healthcheck.routes.js";
+import userRouter from "./presentation/routes/user.routes.js";
+import videoRouter from "./presentation/routes/video.routes.js";
+import commentRouter from "./presentation/routes/comment.routes.js";
+import dashboardRouter from "./presentation/routes/dashboard.routes.js";
+import likeRouter from "./presentation/routes/like.routes.js";
+import playlistRouter from "./presentation/routes/playlist.routes.js";
+import subscriptionRouter from "./presentation/routes/subscription.routes.js";
 
 class Application {
     constructor() {
@@ -27,16 +37,16 @@ class Application {
     }
 
     #configureMiddleware() {
-        this.app.use(
-            helmet({
-                crossOriginResourcePolicy: { policy: "cross-origin" },
-            })
-        );
+        this.app.set("trust proxy", appConfig.security.trustProxy);
+
+        this.app.use(requestContextMiddleware);
+
+        this.app.use(helmet(getHelmetOptions()));
 
         this.app.use(
             cors({
-                origin: this.#getCorsOrigins(),
-                credentials: true,
+                origin: this.#validateCorsOrigin.bind(this),
+                credentials: appConfig.security.corsCredentials,
                 methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
                 allowedHeaders: [
                     "Content-Type",
@@ -47,28 +57,25 @@ class Application {
             })
         );
 
-        this.app.use(express.json({ limit: "16kb" }));
-        this.app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+        this.app.use(express.json({ limit: appConfig.security.jsonBodyLimit }));
+        this.app.use(
+            express.urlencoded({
+                extended: true,
+                limit: appConfig.security.urlencodedBodyLimit,
+            })
+        );
         this.app.use(cookieParser());
+        this.app.use(sanitizeRequest);
 
         this.app.use(compression());
 
         this.app.use(express.static("public"));
 
-        if (process.env.NODE_ENV !== "production") {
-            this.app.use(morgan("dev"));
-        } else {
-            this.app.use(morgan("combined"));
-        }
-
-        this.app.use((req, res, next) => {
-            req.requestTime = new Date().toISOString();
-            next();
-        });
+        this.app.use(httpLoggerMiddleware);
     }
 
     #getCorsOrigins() {
-        const origin = process.env.CORS_ORIGIN;
+        const origin = appConfig.corsOrigin;
 
         if (!origin) {
             return "*";
@@ -81,8 +88,39 @@ class Application {
         return origin;
     }
 
+    #validateCorsOrigin(origin, callback) {
+        if (!origin) {
+            return callback(null, true);
+        }
+
+        const allowedOrigins = this.#getCorsOrigins();
+
+        if (allowedOrigins === "*") {
+            return callback(
+                null,
+                appConfig.security.corsCredentials && !isProduction()
+                    ? true
+                    : "*"
+            );
+        }
+
+        if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        if (allowedOrigins === origin) {
+            return callback(null, true);
+        }
+
+        return callback(
+            new ApiError(HttpStatus.FORBIDDEN, "CORS origin not allowed")
+        );
+    }
+
     #configureRoutes() {
         const API_PREFIX = "/api/v1";
+
+        this.app.use(API_PREFIX, globalApiRateLimiter);
 
         this.app.use(`${API_PREFIX}/healthcheck`, healthcheckRouter);
 
@@ -99,35 +137,33 @@ class Application {
                 ApiResponse.success(
                     {
                         name: "YouTube Clone API",
-                        version: process.env.npm_package_version || "1.0.0",
-                        environment: process.env.NODE_ENV || "development",
-                        documentation: "/api/v1/docs",
+                        version: appConfig.packageVersion,
+                        environment: appConfig.nodeEnv,
+                        documentation: appConfig.docs.route,
                     },
                     "Welcome to YouTube Clone API"
                 )
             );
         });
 
-        this.app.get(`${API_PREFIX}/docs`, (_, res) => {
-            res.status(200).json(
-                ApiResponse.success(
-                    {
-                        message: "API Documentation",
-                        endpoints: {
-                            healthcheck: `${API_PREFIX}/healthcheck`,
-                            users: `${API_PREFIX}/users`,
-                            videos: `${API_PREFIX}/videos`,
-                            comments: `${API_PREFIX}/comments`,
-                            likes: `${API_PREFIX}/likes`,
-                            playlists: `${API_PREFIX}/playlists`,
-                            subscriptions: `${API_PREFIX}/subscriptions`,
-                            dashboard: `${API_PREFIX}/dashboard`,
-                        },
+        if (appConfig.docs.enabled) {
+            this.app.get(appConfig.docs.specRoute, (_, res) => {
+                res.status(200).json(openApiDocument);
+            });
+
+            this.app.use(
+                appConfig.docs.route,
+                swaggerUi.serve,
+                swaggerUi.setup(openApiDocument, {
+                    explorer: true,
+                    swaggerOptions: {
+                        persistAuthorization: false,
+                        displayRequestDuration: true,
                     },
-                    "API documentation"
-                )
+                    customSiteTitle: "Streamly API Docs",
+                })
             );
-        });
+        }
     }
 
     #configureErrorHandling() {
@@ -139,9 +175,53 @@ class Application {
             next(error);
         });
 
-        this.app.use((err, req, res, next) => {
+        this.app.use((err, req, res, _next) => {
+            const statusCode =
+                err.statusCode ||
+                (err.type === "entity.too.large"
+                    ? HttpStatus.PAYLOAD_TOO_LARGE
+                    : HttpStatus.INTERNAL_SERVER_ERROR);
+
+            logError(
+                req.log,
+                err,
+                {
+                    method: req.method,
+                    path: req.originalUrl,
+                    statusCode,
+                    userId: req.user?._id,
+                },
+                "request error"
+            );
+
             if (err instanceof ApiError) {
                 return res.status(err.statusCode).json(err.toJSON());
+            }
+
+            if (err.type === "entity.too.large") {
+                return res
+                    .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                    .json(
+                        new ApiError(
+                            HttpStatus.PAYLOAD_TOO_LARGE,
+                            "Request payload too large"
+                        ).toJSON()
+                    );
+            }
+
+            if (
+                err instanceof SyntaxError &&
+                err.status === 400 &&
+                "body" in err
+            ) {
+                return res
+                    .status(HttpStatus.BAD_REQUEST)
+                    .json(
+                        new ApiError(
+                            HttpStatus.BAD_REQUEST,
+                            "Malformed JSON payload"
+                        ).toJSON()
+                    );
             }
 
             if (err.name === "ValidationError") {
@@ -226,12 +306,9 @@ class Application {
                     );
             }
 
-            console.error("Unhandled Error:", err);
-
-            const message =
-                process.env.NODE_ENV === "production"
-                    ? "Internal server error"
-                    : err.message;
+            const message = isProduction()
+                ? "Internal server error"
+                : err.message;
 
             return res
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

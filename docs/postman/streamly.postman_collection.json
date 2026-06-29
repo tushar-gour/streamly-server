@@ -1,0 +1,249 @@
+{
+    "info": {
+        "name": "Streamly API",
+        "description": "Postman collection for Streamly API. Uses variables and contains no real secrets.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "accessToken",
+            "value": ""
+        },
+        {
+            "key": "refreshToken",
+            "value": ""
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{accessToken}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Healthcheck",
+            "item": [
+                {
+                    "name": "Basic Healthcheck",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/healthcheck"
+                    }
+                },
+                {
+                    "name": "Detailed Healthcheck",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/healthcheck/detailed"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "username",
+                                    "value": "demo",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "email",
+                                    "value": "demo@example.com",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "fullName",
+                                    "value": "Demo User",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "replace_with_password",
+                                    "type": "text"
+                                },
+                                { "key": "avatar", "type": "file", "src": [] },
+                                {
+                                    "key": "coverImage",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": "{{baseUrl}}/api/v1/users/register"
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"email\":\"demo@example.com\",\"password\":\"replace_with_password\"}"
+                        },
+                        "url": "{{baseUrl}}/api/v1/users/login"
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Refresh-Token",
+                                "value": "{{refreshToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/users/refresh-token"
+                    }
+                },
+                {
+                    "name": "Current User",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/users/current-user"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/users/logout"
+                    }
+                },
+                {
+                    "name": "Logout All",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/users/logout-all"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Videos",
+            "item": [
+                {
+                    "name": "List Videos",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/videos?page=1&limit=10"
+                    }
+                },
+                {
+                    "name": "Get Video",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/videos/{{videoId}}"
+                    }
+                },
+                {
+                    "name": "Publish Video",
+                    "request": {
+                        "method": "POST",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "title",
+                                    "value": "Demo video",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Demo description",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "videoFile",
+                                    "type": "file",
+                                    "src": []
+                                },
+                                {
+                                    "key": "thumbnail",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": "{{baseUrl}}/api/v1/videos"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Comments",
+            "item": [
+                {
+                    "name": "List Video Comments",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/comments/{{videoId}}"
+                    }
+                },
+                {
+                    "name": "Add Comment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"content\":\"Nice video\"}"
+                        },
+                        "url": "{{baseUrl}}/api/v1/comments/{{videoId}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Documentation",
+            "item": [
+                {
+                    "name": "Swagger UI",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/docs"
+                    }
+                },
+                {
+                    "name": "OpenAPI JSON",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/docs/openapi.json"
+                    }
+                }
+            ]
+        }
+    ]
+}

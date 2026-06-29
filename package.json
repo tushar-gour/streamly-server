@@ -1,7 +1,7 @@
 {
   "name": "youtube-backend",
   "version": "1.0.0",
-  "description": "A professional YouTube clone backend API built with Node.js, Express, and MongoDB",
+  "description": "A professional YouTube clone backend API built with Node.js, Express, PostgreSQL, and Prisma",
   "type": "module",
   "main": "src/index.js",
   "engines": {
@@ -10,10 +10,33 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "lint": "eslint src/**/*.js",
-    "lint:fix": "eslint src/**/*.js --fix",
-    "format": "prettier --write \"src/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.js\""
+    "lint": "eslint src scripts tests vitest.config.js --ext .js,.mjs",
+    "lint:fix": "eslint src scripts tests vitest.config.js --ext .js,.mjs --fix",
+    "syntax": "node scripts/check-syntax.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "verify:live": "node scripts/verify-live.mjs",
+    "verify:docker": "node scripts/verify-docker.mjs",
+    "verify:jobs": "node scripts/verify-jobs.mjs",
+    "docs:validate": "node scripts/validate-openapi.mjs",
+    "jobs:worker": "node src/workers/index.js",
+    "seed:rbac": "node scripts/seed-rbac.mjs",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app",
+    "docker:ps": "docker compose ps",
+    "docker:clean": "docker compose down -v",
+    "verify": "npm run format:check && npm run lint && npm run syntax && npm run smoke",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit tests/services",
+    "test:integration": "vitest run tests/integration",
+    "test:api": "vitest run tests/api",
+    "test:coverage": "vitest run --coverage",
+    "format": "prettier --write \"src/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.js\" \"docs/**/*.json\" \"vitest.config.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.js\" \"docs/**/*.json\" \"vitest.config.js\""
   },
   "keywords": [
     "youtube",
@@ -21,29 +44,37 @@
     "api",
     "nodejs",
     "express",
-    "mongodb",
+    "postgresql",
+    "prisma",
     "rest-api"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "bcrypt": "^5.1.1",
+    "bullmq": "^5.79.2",
     "cloudinary": "^2.3.1",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
     "helmet": "^7.2.0",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.5.1",
-    "mongoose-aggregate-paginate-v2": "^1.1.2",
-    "morgan": "^1.10.1",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "pino": "^10.3.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^8.57.0",
     "nodemon": "^3.1.4",
-    "prettier": "^3.3.3"
+    "prettier": "^3.3.3",
+    "prisma": "^6.19.0",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.9"
   }
 }

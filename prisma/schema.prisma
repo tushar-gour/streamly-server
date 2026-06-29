@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String                   @id @db.Char(24)
+  username                String                   @unique @db.VarChar(30)
+  email                   String                   @unique
+  fullName                String                   @db.VarChar(100)
+  avatar                  String
+  coverImage              String                   @default("")
+  password                String
+  emailVerifiedAt         DateTime?
+  passwordChangedAt       DateTime?
+  lastLoginAt             DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  videos                  Video[]
+  comments                Comment[]
+  likes                   Like[]
+  playlists               Playlist[]
+  sessions                Session[]
+  userRoles               UserRole[]
+  emailVerificationTokens EmailVerificationToken[]
+  subscribers             Subscription[]           @relation("ChannelSubscriptions")
+  subscribedTo            Subscription[]           @relation("SubscriberSubscriptions")
+  watchHistory            WatchHistory[]
+
+  @@index([email, username])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @db.Char(24)
+  name            String           @unique @db.VarChar(60)
+  description     String           @default("") @db.VarChar(255)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([createdAt])
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @db.Char(24)
+  name            String           @unique @db.VarChar(120)
+  description     String           @default("") @db.VarChar(255)
+  resource        String           @db.VarChar(60)
+  action          String           @db.VarChar(80)
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([resource, action])
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @db.Char(24)
+  userId    String   @db.Char(24)
+  roleId    String   @db.Char(24)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @db.Char(24)
+  roleId       String     @db.Char(24)
+  permissionId String     @db.Char(24)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id               String    @id @db.Char(24)
+  userId           String    @db.Char(24)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @db.Char(64)
+  userAgent        String?
+  ipAddress        String?   @db.VarChar(64)
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  revokedReason    String?   @db.VarChar(120)
+  lastUsedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@index([refreshTokenHash])
+  @@map("sessions")
+}
+
+model EmailVerificationToken {
+  id        String    @id @db.Char(24)
+  userId    String    @db.Char(24)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId, expiresAt])
+  @@index([usedAt])
+  @@map("email_verification_tokens")
+}
+
+model Video {
+  id           String          @id @db.Char(24)
+  videoFile    String
+  thumbnail    String
+  title        String          @db.VarChar(200)
+  description  String          @db.VarChar(5000)
+  duration     Float
+  views        Int             @default(0)
+  isPublished  Boolean         @default(true)
+  ownerId      String          @db.Char(24)
+  owner        User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  likes        Like[]
+  playlists    PlaylistVideo[]
+  watchHistory WatchHistory[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([ownerId, createdAt])
+  @@index([isPublished, createdAt])
+  @@index([views])
+  @@map("videos")
+}
+
+model Comment {
+  id        String   @id @db.Char(24)
+  content   String   @db.VarChar(2000)
+  videoId   String   @db.Char(24)
+  ownerId   String   @db.Char(24)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  likes     Like[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([videoId, createdAt])
+  @@index([ownerId, createdAt])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @db.Char(24)
+  videoId   String?  @db.Char(24)
+  commentId String?  @db.Char(24)
+  tweetId   String?  @db.Char(24)
+  likedById String   @db.Char(24)
+  video     Video?   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  likedBy   User     @relation(fields: [likedById], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([videoId, likedById])
+  @@unique([commentId, likedById])
+  @@unique([tweetId, likedById])
+  @@index([videoId])
+  @@index([commentId])
+  @@index([tweetId])
+  @@index([likedById])
+  @@map("likes")
+}
+
+model Playlist {
+  id          String          @id @db.Char(24)
+  name        String          @db.VarChar(100)
+  description String          @default("") @db.VarChar(500)
+  ownerId     String          @db.Char(24)
+  owner       User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPublic    Boolean         @default(true)
+  videos      PlaylistVideo[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([ownerId, createdAt])
+  @@index([name, ownerId])
+  @@index([isPublic, createdAt])
+  @@map("playlists")
+}
+
+model PlaylistVideo {
+  playlistId String   @db.Char(24)
+  videoId    String   @db.Char(24)
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([playlistId, videoId])
+  @@map("playlist_videos")
+}
+
+model Subscription {
+  id           String   @id @db.Char(24)
+  subscriberId String   @db.Char(24)
+  channelId    String   @db.Char(24)
+  subscriber   User     @relation("SubscriberSubscriptions", fields: [subscriberId], references: [id], onDelete: Cascade)
+  channel      User     @relation("ChannelSubscriptions", fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([subscriberId, channelId])
+  @@index([channelId, createdAt])
+  @@index([subscriberId, createdAt])
+  @@map("subscriptions")
+}
+
+model WatchHistory {
+  userId    String   @db.Char(24)
+  videoId   String   @db.Char(24)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, videoId])
+  @@map("watch_history")
+}

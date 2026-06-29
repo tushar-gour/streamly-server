@@ -1,18 +1,27 @@
-import dotenv from "dotenv";
 import http from "http";
 
-import connectDB, { databaseConnection } from "./db/index.js";
-import { app } from "./app.js";
+import {
+    appConfig,
+    assertStartupConfig,
+    StartupConfigError,
+} from "./config/env.js";
+import connectDB, {
+    databaseConnection,
+} from "./infrastructure/database/prisma-connection.js";
+import { redisService } from "./infrastructure/redis/redis.service.js";
+import { queueRegistry } from "./infrastructure/jobs/queue-registry.js";
+import {
+    createLogger,
+    serializeError,
+} from "./infrastructure/logger/logger.js";
 
-dotenv.config({
-    path: "./.env",
-});
+const serverLogger = createLogger("server");
 
 class Server {
     constructor(app) {
         this.app = app;
         this.server = null;
-        this.port = this.#normalizePort(process.env.PORT || "8000");
+        this.port = this.#normalizePort(appConfig.port);
         this.isShuttingDown = false;
     }
 
@@ -25,20 +34,13 @@ class Server {
     }
 
     #logServerInfo() {
-        const divider = "═".repeat(60);
-        const env = process.env.NODE_ENV || "development";
-
-        console.log(`\n${divider}`);
-        console.log("  🚀 YouTube Clone API Server");
-        console.log(divider);
-        console.log(`  📍 Environment: ${env}`);
-        console.log(`  🌐 Port: ${this.port}`);
-        console.log(`  🔗 URL: http://localhost:${this.port}`);
-        console.log(`  📚 API Docs: http://localhost:${this.port}/api/v1/docs`);
-        console.log(
-            `  ❤️  Health: http://localhost:${this.port}/api/v1/healthcheck`
+        serverLogger.info(
+            {
+                port: this.port,
+                healthPath: "/api/v1/healthcheck",
+            },
+            "server started"
         );
-        console.log(`${divider}\n`);
     }
 
     #setupGracefulShutdown() {
@@ -48,27 +50,31 @@ class Server {
             }
 
             this.isShuttingDown = true;
-            console.log(
-                `\n⚠️  Received ${signal}. Gracefully shutting down...`
-            );
+            serverLogger.info({ signal }, "graceful shutdown started");
 
             this.server.close(async () => {
-                console.log("✅ HTTP server closed");
+                serverLogger.info("http server closed");
 
                 try {
                     await databaseConnection.disconnect();
-                    console.log("✅ Database connection closed");
 
-                    console.log("👋 Server shutdown complete");
+                    await queueRegistry.closeAll();
+
+                    await redisService.disconnect();
+
+                    serverLogger.info("server shutdown complete");
                     process.exit(0);
                 } catch (error) {
-                    console.error("❌ Error during shutdown:", error);
+                    serverLogger.error(
+                        { error: serializeError(error, true) },
+                        "shutdown failed"
+                    );
                     process.exit(1);
                 }
             });
 
             setTimeout(() => {
-                console.error("❌ Forced shutdown due to timeout");
+                serverLogger.error("forced shutdown due to timeout");
                 process.exit(1);
             }, 30000);
         };
@@ -77,16 +83,17 @@ class Server {
         process.on("SIGINT", () => shutdown("SIGINT"));
 
         process.on("uncaughtException", (error) => {
-            console.error("❌ Uncaught Exception:", error);
+            serverLogger.fatal(
+                { error: serializeError(error, true) },
+                "uncaught exception"
+            );
             shutdown("uncaughtException");
         });
 
-        process.on("unhandledRejection", (reason, promise) => {
-            console.error(
-                "❌ Unhandled Rejection at:",
-                promise,
-                "reason:",
-                reason
+        process.on("unhandledRejection", (reason) => {
+            serverLogger.fatal(
+                { reason: serializeError(reason, true) || String(reason) },
+                "unhandled rejection"
             );
             shutdown("unhandledRejection");
         });
@@ -94,8 +101,11 @@ class Server {
 
     async start() {
         try {
-            console.log("🔌 Connecting to database...");
+            serverLogger.info("connecting to database");
             await connectDB();
+
+            serverLogger.info("connecting to redis");
+            await redisService.connect();
 
             this.server = http.createServer(this.app);
 
@@ -107,22 +117,60 @@ class Server {
 
             this.server.on("error", (error) => {
                 if (error.code === "EADDRINUSE") {
-                    console.error(`❌ Port ${this.port} is already in use`);
+                    serverLogger.error(
+                        { port: this.port },
+                        "server port already in use"
+                    );
                 } else if (error.code === "EACCES") {
-                    console.error(
-                        `❌ Port ${this.port} requires elevated privileges`
+                    serverLogger.error(
+                        { port: this.port },
+                        "server port requires elevated privileges"
                     );
                 } else {
-                    console.error("❌ Server error:", error);
+                    serverLogger.error(
+                        { error: serializeError(error, true) },
+                        "server error"
+                    );
                 }
                 process.exit(1);
             });
         } catch (error) {
-            console.error("❌ Failed to start server:", error);
+            if (error instanceof StartupConfigError) {
+                serverLogger.error(
+                    { missingKeys: error.missingKeys },
+                    "startup configuration error"
+                );
+            } else {
+                serverLogger.error(
+                    { error: serializeError(error, true) },
+                    "failed to start server"
+                );
+            }
             process.exit(1);
         }
     }
 }
 
-const server = new Server(app);
-server.start();
+const bootstrap = async () => {
+    try {
+        assertStartupConfig();
+        const { app } = await import("./app.js");
+        const server = new Server(app);
+        await server.start();
+    } catch (error) {
+        if (error instanceof StartupConfigError) {
+            serverLogger.error(
+                { missingKeys: error.missingKeys },
+                "startup configuration error"
+            );
+        } else {
+            serverLogger.error(
+                { error: serializeError(error, true) },
+                "failed to bootstrap server"
+            );
+        }
+        process.exit(1);
+    }
+};
+
+bootstrap();

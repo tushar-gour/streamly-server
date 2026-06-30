@@ -21,6 +21,7 @@
     "verify:docker": "tsx scripts/verify-docker.mjs",
     "verify:jobs": "tsx scripts/verify-jobs.mjs",
     "docs:validate": "tsx scripts/validate-openapi.mjs",
+    "env:validate": "tsx scripts/validate-env.mjs",
     "jobs:worker": "node dist/src/workers/index.js",
     "jobs:worker:dev": "tsx src/workers/index.ts",
     "seed:rbac": "tsx scripts/seed-rbac.mjs",

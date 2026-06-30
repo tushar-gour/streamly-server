@@ -82,7 +82,6 @@ flowchart LR
     Worker --> Postgres
     API --> Cloudflare["Cloudflare Turnstile"]
     API --> S3["AWS S3 media storage"]
-    API --> Cloudinary["Cloudinary fallback"]
 ```
 
 Core dependency direction:
@@ -127,7 +126,7 @@ Detailed architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Authentication | JWT, bcrypt, persistent sessions |
 | Authorization | RBAC, permissions, ownership policies |
 | Security | Helmet, CORS, express-rate-limit, sanitization, secure cookies |
-| Media | Multer, Cloudinary |
+| Media | Multer, AWS S3, ffmpeg thumbnails |
 | Logging | Pino, request IDs, correlation IDs |
 | Testing | Vitest, Supertest, coverage |
 | Documentation | OpenAPI 3.1, Swagger UI, Postman |
@@ -142,7 +141,7 @@ Prerequisites:
 - Node.js 20 recommended
 - PostgreSQL
 - Redis
-- Cloudinary account for real upload workflows
+- S3 bucket access through EC2 IAM role
 
 ```bash
 git clone https://github.com/tushar-gour/streamly-server.git
@@ -284,7 +283,7 @@ BullMQ queues are backed by Redis and processed by a separate worker service.
 | --- | --- |
 | `streamly-email` | Email verification delivery through SendGrid when configured |
 | `streamly-notification` | Notification foundation with Twilio SMS provider support |
-| `streamly-thumbnail` | Cloudinary transformations or S3 ffmpeg frame extraction |
+| `streamly-thumbnail` | S3 ffmpeg frame extraction |
 | `streamly-cleanup` | Expired auth artifact cleanup |
 | `streamly-verification` | Safe queue verification |
 
@@ -397,7 +396,7 @@ src/
   config/                    centralized environment config
   core/container/            dependency composition
   domain/repositories/       repository contracts
-  infrastructure/            Prisma, Redis, BullMQ, Cloudinary, logging
+  infrastructure/            Prisma, Redis, BullMQ, S3 media, logging
   presentation/              routes, controllers, middleware
   shared/                    responses, errors, validators, helpers
   workers/                   worker entrypoint
@@ -445,7 +444,7 @@ nginx/                       reverse proxy config
 - AWS deployment is manual and not automated in this repository.
 - Real credentials must be configured by the owner in production env files.
 - Twilio SendGrid and Twilio SMS providers require production credentials.
-- S3 storage is available through `MEDIA_STORAGE_PROVIDER=s3`; production credentials must be configured by owner.
+- S3 storage uses `MEDIA_STORAGE_PROVIDER=s3`; EC2 should use an attached IAM role.
 - Redis-backed distributed rate limiting is not implemented.
 - External monitoring and tracing are not integrated.
 - Database-backed integration tests are guarded by default.

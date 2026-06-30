@@ -89,9 +89,6 @@ Set production-safe values for:
 - `REDIS_URL`
 - `ACCESS_TOKEN_SECRET`
 - `REFRESH_TOKEN_SECRET`
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
 - `CORS_ORIGIN`
 - `CORS_CREDENTIALS`
 - `TRUST_PROXY`
@@ -115,6 +112,9 @@ Set production-safe values for:
 - `THUMBNAIL_GENERATION_ENABLED`
 - `AWS_REGION`
 - `AWS_S3_BUCKET`
+
+Leave `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` empty on EC2 when an IAM
+role with S3 access is attached.
 
 Do not use placeholder secrets in production.
 
@@ -145,8 +145,7 @@ proxy buffering disabled for streaming behavior.
   `EMAIL_PROVIDER=sendgrid`.
 - SMS notification infrastructure uses Twilio when `SMS_ENABLED=true` and
   `SMS_PROVIDER=twilio`.
-- Thumbnail jobs generate Cloudinary transformation URLs for Cloudinary media
-  and ffmpeg-extracted 16:9 thumbnails for S3 media when
+- Thumbnail jobs generate ffmpeg-extracted 16:9 thumbnails for S3 media when
   `THUMBNAIL_GENERATION_ENABLED=true`.
 - Tests and CI use no-op providers and never call real providers.
 

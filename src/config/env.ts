@@ -6,18 +6,39 @@ dotenv.config({
 
 class StartupConfigError extends Error {
     missingKeys: string[];
+    diagnostics: EnvUrlDiagnostic[];
 
-    constructor(missingKeys: string[]) {
+    constructor(missingKeys: string[], diagnostics: EnvUrlDiagnostic[] = []) {
         super(
-            `Missing required environment variables: ${missingKeys.join(", ")}`
+            [
+                missingKeys.length > 0
+                    ? `Missing required environment variables: ${missingKeys.join(", ")}`
+                    : "",
+                diagnostics.length > 0
+                    ? `Invalid environment variables: ${formatEnvUrlDiagnostics(diagnostics)}`
+                    : "",
+            ]
+                .filter(Boolean)
+                .join("; ")
         );
         this.name = "StartupConfigError";
         this.missingKeys = missingKeys;
+        this.diagnostics = diagnostics;
     }
 }
 
+type EnvUrlDiagnostic = {
+    key: string;
+    protocol: string | null;
+    hasHost: boolean;
+    hasPath: boolean;
+    hasQuery: boolean;
+    isValid: boolean;
+    reason: string;
+};
+
 const readEnv = (key: string, fallback = ""): string =>
-    process.env[key] || fallback;
+    process.env[key]?.trim() || fallback;
 const readBooleanEnv = (key: string, fallback = false): boolean => {
     const value = readEnv(key);
     if (!value) return fallback;
@@ -41,6 +62,113 @@ const readTrustProxy = (): boolean | number | string => {
 
 const configuredNodeEnv = readEnv("NODE_ENV", "development");
 const configuredIsProduction = configuredNodeEnv === "production";
+
+const createEnvUrlDiagnostic = (
+    key: string,
+    value: string,
+    allowedProtocols: string[],
+    { requirePath = false }: { requirePath?: boolean } = {}
+): EnvUrlDiagnostic => {
+    const safeValue = value.trim();
+    const fallbackDiagnostic = {
+        key,
+        protocol: null,
+        hasHost: false,
+        hasPath: false,
+        hasQuery: false,
+        isValid: false,
+        reason: "missing",
+    };
+
+    if (!safeValue) return fallbackDiagnostic;
+
+    try {
+        const parsedUrl = new URL(safeValue);
+        const protocol = parsedUrl.protocol.replace(/:$/u, "");
+        const hasHost = Boolean(parsedUrl.hostname);
+        const hasPath = Boolean(
+            parsedUrl.pathname && parsedUrl.pathname !== "/"
+        );
+        const hasQuery = Boolean(parsedUrl.search);
+
+        if (!allowedProtocols.includes(protocol)) {
+            return {
+                key,
+                protocol,
+                hasHost,
+                hasPath,
+                hasQuery,
+                isValid: false,
+                reason: "unsupported-protocol",
+            };
+        }
+
+        if (!hasHost) {
+            return {
+                key,
+                protocol,
+                hasHost,
+                hasPath,
+                hasQuery,
+                isValid: false,
+                reason: "missing-host",
+            };
+        }
+
+        if (requirePath && !hasPath) {
+            return {
+                key,
+                protocol,
+                hasHost,
+                hasPath,
+                hasQuery,
+                isValid: false,
+                reason: "missing-database-path",
+            };
+        }
+
+        return {
+            key,
+            protocol,
+            hasHost,
+            hasPath,
+            hasQuery,
+            isValid: true,
+            reason: "valid",
+        };
+    } catch {
+        const protocolMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\//u.exec(
+            safeValue
+        );
+
+        return {
+            ...fallbackDiagnostic,
+            reason: "parse-error",
+            protocol: protocolMatch?.[1] || null,
+        };
+    }
+};
+
+const getEnvUrlDiagnostics = (): EnvUrlDiagnostic[] => [
+    createEnvUrlDiagnostic(
+        "DATABASE_URL",
+        appConfig.database.url,
+        ["postgresql", "postgres"],
+        { requirePath: true }
+    ),
+    createEnvUrlDiagnostic("REDIS_URL", appConfig.redis.url, [
+        "redis",
+        "rediss",
+    ]),
+];
+
+const formatEnvUrlDiagnostics = (diagnostics: EnvUrlDiagnostic[]) =>
+    diagnostics
+        .map(
+            (diagnostic) =>
+                `${diagnostic.key} (${diagnostic.reason}, protocol=${diagnostic.protocol || "<none>"}, host=${diagnostic.hasHost}, path=${diagnostic.hasPath}, query=${diagnostic.hasQuery})`
+        )
+        .join(", ");
 
 const appConfig = Object.freeze({
     nodeEnv: configuredNodeEnv,
@@ -231,6 +359,10 @@ const getMissingStartupEnvKeys = () =>
 
 const assertStartupConfig = () => {
     const missingKeys = getMissingStartupEnvKeys();
+    const invalidUrlDiagnostics = getEnvUrlDiagnostics().filter(
+        (diagnostic) =>
+            !diagnostic.isValid && !missingKeys.includes(diagnostic.key)
+    );
 
     if (appConfig.email.enabled && appConfig.email.provider === "sendgrid") {
         if (!appConfig.email.sendgridApiKey)
@@ -264,9 +396,6 @@ const assertStartupConfig = () => {
 
     if (appConfig.media.storageProvider === "s3") {
         if (!appConfig.aws.s3Bucket) missingKeys.push("AWS_S3_BUCKET");
-        if (!appConfig.aws.accessKeyId) missingKeys.push("AWS_ACCESS_KEY_ID");
-        if (!appConfig.aws.secretAccessKey)
-            missingKeys.push("AWS_SECRET_ACCESS_KEY");
     } else {
         if (!appConfig.cloudinary.cloudName)
             missingKeys.push("CLOUDINARY_CLOUD_NAME");
@@ -280,8 +409,8 @@ const assertStartupConfig = () => {
         missingKeys.push("MFA_SECRET_ENCRYPTION_KEY");
     }
 
-    if (missingKeys.length > 0) {
-        throw new StartupConfigError(missingKeys);
+    if (missingKeys.length > 0 || invalidUrlDiagnostics.length > 0) {
+        throw new StartupConfigError(missingKeys, invalidUrlDiagnostics);
     }
 
     if (
@@ -298,6 +427,9 @@ const assertStartupConfig = () => {
 export {
     appConfig,
     assertStartupConfig,
+    createEnvUrlDiagnostic,
+    formatEnvUrlDiagnostics,
+    getEnvUrlDiagnostics,
     getMissingStartupEnvKeys,
     isProduction,
     requiredStartupEnvKeys,

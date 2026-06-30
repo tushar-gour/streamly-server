@@ -254,15 +254,16 @@ npx prisma generate
 On Windows, `prisma generate` may fail if the query engine file is locked. Wait
 for running tests or Node processes to exit, then retry.
 
-### Cloudinary placeholders
+### S3 media configuration
 
 If uploads fail, verify:
 
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
+- `MEDIA_STORAGE_PROVIDER=s3`
+- `AWS_REGION`
+- `AWS_S3_BUCKET`
 
-Tests do not require real Cloudinary credentials.
+On EC2, leave `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` empty when an IAM
+role with S3 access is attached.
 
 ### Rate limit issues
 

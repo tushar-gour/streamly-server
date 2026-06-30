@@ -19,7 +19,7 @@ framework, database, queue, and storage details.
 | Presentation | Express routes, middleware, controllers, request parsing, responses |
 | Application | Use-case orchestration, auth workflows, caching decisions, job enqueueing |
 | Domain | Repository contracts and core authorization concepts |
-| Infrastructure | Prisma, PostgreSQL, Redis, BullMQ, Cloudinary, Pino, adapters |
+| Infrastructure | Prisma, PostgreSQL, Redis, BullMQ, S3 media, Pino, adapters |
 | Core | Dependency composition and container wiring |
 | Shared | API responses, errors, validators, constants, helpers |
 
@@ -55,7 +55,7 @@ src/
   domain/repositories/
   infrastructure/
     cache/
-    cloudinary/
+    cloudinary/ legacy fallback
     database/
     jobs/
     logger/
@@ -77,7 +77,7 @@ flowchart LR
     Nginx --> App["Express app :8000"]
     App --> Postgres["PostgreSQL"]
     App --> Redis["Redis"]
-    App --> Cloudinary["Cloudinary"]
+    App --> S3["AWS S3"]
     App --> Queues["BullMQ queues"]
     Worker["Worker process"] --> Queues
     Worker --> Redis
@@ -182,8 +182,8 @@ sequenceDiagram
     Processor-->>Worker: result or sanitized error
 ```
 
-Current queues support email verification, notifications, cleanup, Cloudinary
-thumbnail generation, and job health verification. Email delivery uses Twilio
+Current queues support email verification, notifications, cleanup, S3 thumbnail
+generation, and job health verification. Email delivery uses Twilio
 SendGrid when configured, while SMS notification infrastructure uses Twilio
 when enabled.
 
@@ -252,6 +252,6 @@ Services:
 - API route count is now `52` after adding video streaming and auth-platform routes.
 - Runtime source is TypeScript and builds to `dist/`.
 - Public API response style is preserved.
-- Cloudinary behavior is adapter-based.
+- S3 media behavior is adapter-based.
 - Smoke import does not start server or connect external services.
 - Worker runtime does not start Express.

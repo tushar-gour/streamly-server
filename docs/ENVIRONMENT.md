@@ -95,9 +95,9 @@ redis://redis:6379
 | `CLEANUP_QUEUE_ENABLED` | Optional | `true` | Cleanup queue |
 | `THUMBNAIL_QUEUE_ENABLED` | Optional | `false` local, `true` production | Thumbnail queue |
 
-Thumbnail processing generates Cloudinary thumbnail transformation URLs for
-Cloudinary media. S3 thumbnail workers use ffmpeg-based frame extraction, upload
-the generated image to S3, and update the existing video thumbnail URL.
+Thumbnail processing uses S3 thumbnail workers with ffmpeg-based frame
+extraction, uploads the generated image to S3, and updates the existing video
+thumbnail URL.
 
 ## Cache
 
@@ -187,44 +187,33 @@ Twilio credentials are required only when `SMS_ENABLED=true` and
 
 `RBAC_ADMIN_EMAIL` is only used by explicit seed command.
 
-## Cloudinary
-
-| Variable | Required | Safe local example | Purpose |
-| --- | --- | --- | --- |
-| `CLOUDINARY_CLOUD_NAME` | Yes | `replace_with_cloud_name` | Cloudinary cloud |
-| `CLOUDINARY_API_KEY` | Yes | `replace_with_api_key` | Cloudinary key |
-| `CLOUDINARY_API_SECRET` | Yes | `replace_with_api_secret` | Cloudinary secret |
-| `MOCK_CLOUDINARY` | Optional | `true` | Test/local mock switch |
-
-Do not use real Cloudinary secrets in examples.
-
 ## Media Storage And Streaming
 
 | Variable | Required | Safe local example | Purpose |
 | --- | --- | --- | --- |
-| `MEDIA_STORAGE_PROVIDER` | Optional | `cloudinary` | Active media provider: `cloudinary` or `s3` |
+| `MEDIA_STORAGE_PROVIDER` | Optional | `s3` | Active media provider |
 | `VIDEO_STREAMING_ENABLED` | Optional | `true` | Enables HTTP Range stream endpoint |
-| `THUMBNAIL_GENERATION_ENABLED` | Optional | `false` local, `true` production | Enables thumbnail generation |
+| `THUMBNAIL_GENERATION_ENABLED` | Optional | `true` | Enables thumbnail generation |
 | `THUMBNAIL_WIDTH` | Optional | `1280` | Generated thumbnail width |
 | `THUMBNAIL_HEIGHT` | Optional | `720` | Generated thumbnail height |
-| `THUMBNAIL_FORMAT` | Optional | `jpg` | Generated thumbnail format |
+| `THUMBNAIL_FORMAT` | Optional | `webp` | Generated thumbnail format |
 
-Cloudinary remains the safe local default. S3 is available for production with
-`MEDIA_STORAGE_PROVIDER=s3` and streams trusted object keys with Range reads.
+S3 is the active media provider. EC2 deployments should use an attached IAM role
+instead of static AWS access keys.
 
 ## AWS/S3 Readiness
 
 | Variable | Required | Safe local example | Purpose |
 | --- | --- | --- | --- |
 | `AWS_REGION` | Required for S3 | `ap-south-1` | AWS region |
-| `AWS_S3_BUCKET` | Required for S3 | empty | S3 bucket |
-| `AWS_ACCESS_KEY_ID` | Required for S3 | empty | AWS access key |
-| `AWS_SECRET_ACCESS_KEY` | Required for S3 | empty | AWS secret |
+| `AWS_S3_BUCKET` | Required for S3 | `streamly-media-tushar` | S3 bucket |
+| `AWS_ACCESS_KEY_ID` | Optional on EC2 | empty | Leave empty when EC2 IAM role is attached |
+| `AWS_SECRET_ACCESS_KEY` | Optional on EC2 | empty | Leave empty when EC2 IAM role is attached |
 | `AWS_S3_PUBLIC_BASE_URL` | Optional | empty | CloudFront or S3 public base URL |
 | `AWS_S3_FORCE_PATH_STYLE` | Optional | `false` | Path-style S3 compatibility |
 
-AWS values are required only when `MEDIA_STORAGE_PROVIDER=s3`. Tests and CI keep
-S3 disabled unless explicitly configured.
+`AWS_S3_BUCKET` is required when `MEDIA_STORAGE_PROVIDER=s3`. Static AWS keys
+are optional because the AWS SDK can resolve EC2 IAM role credentials.
 
 ## CI Notes
 

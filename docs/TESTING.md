@@ -32,10 +32,10 @@ npm run test:coverage
 - Redis disabled
 - jobs disabled
 - rate limiting disabled
-- Cloudinary mocked
+- external media providers mocked
 - test database URL fallback
 
-No test requires real Cloudinary credentials or real email delivery.
+No test requires real S3 credentials or real email delivery.
 
 ## Test Database Strategy
 
@@ -76,7 +76,7 @@ RUN_DATABASE_TESTS=true TEST_DATABASE_URL=postgresql://postgres:postgres@localho
 
 ## External Services
 
-Cloudinary:
+Media providers:
 
 - mocked by default in tests
 - no real upload required

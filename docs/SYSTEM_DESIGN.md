@@ -9,7 +9,7 @@ uploads, caching, queues, documentation, and operational tooling.
 - Register and authenticate users.
 - Issue access tokens and rotate refresh tokens.
 - Maintain persistent sessions.
-- Upload avatars, cover images, videos, and thumbnails through Cloudinary.
+- Upload avatars, cover images, videos, and thumbnails through S3.
 - Publish, update, delete, and list videos.
 - View public videos and video details.
 - Add, update, delete, and list comments.
@@ -120,7 +120,7 @@ BullMQ queues offload background-ready workflows:
 - email verification through SendGrid when configured
 - notification job foundation with Twilio SMS provider support
 - auth cleanup jobs
-- Cloudinary thumbnail transformation jobs and S3 ffmpeg thumbnail extraction jobs
+- S3 ffmpeg thumbnail extraction jobs
 - job health verification
 
 Provider calls use safe no-op behavior unless explicitly enabled and
@@ -167,7 +167,7 @@ flowchart TD
     Nginx --> App["Express app container"]
     App --> Postgres["PostgreSQL"]
     App --> Redis["Redis"]
-    App --> Cloudinary["Cloudinary"]
+    App --> S3["AWS S3"]
     Worker["BullMQ worker container"] --> Redis
     Worker --> Postgres
 ```
@@ -182,8 +182,8 @@ DNS and HTTPS renewal automation are not managed by this repository.
 - Docker Compose is used instead of Kubernetes for approachable local runtime.
 - Redis-backed distributed rate limiting is deferred.
 - Email and SMS provider integrations require production credentials.
-- Thumbnail processing uses Cloudinary transformations for Cloudinary media and
-  ffmpeg frame extraction for S3 media without buffering full videos in memory.
+- Thumbnail processing uses ffmpeg frame extraction for S3 media without
+  buffering full videos in memory.
 - Database-backed integration tests are guarded, not enabled by default in CI.
 - Dependency advisories are reported but not fixed in this documentation phase.
 

@@ -147,10 +147,10 @@ Multipart endpoints include:
 - video file
 - video thumbnail
 
-Upload fields are documented in OpenAPI. Cloudinary stores uploaded assets.
-When thumbnail jobs are enabled, Streamly can generate a Cloudinary video-frame
-thumbnail in the background and update the existing thumbnail URL without
-changing the upload response shape.
+Upload fields are documented in OpenAPI. S3 stores uploaded assets when
+`MEDIA_STORAGE_PROVIDER=s3`. When thumbnail jobs are enabled, Streamly can
+generate an S3 video-frame thumbnail in the background and update the existing
+thumbnail URL without changing the upload response shape.
 
 ## API Modules
 

@@ -200,7 +200,7 @@ Never commit:
 - JWT secrets
 - database passwords
 - Redis credentials
-- Cloudinary secrets
+- S3 credentials, when static credentials are used outside EC2 IAM roles
 - refresh tokens
 - email verification tokens
 - cookies

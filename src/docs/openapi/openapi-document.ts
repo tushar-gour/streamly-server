@@ -162,6 +162,216 @@ const openApiDocument = {
                 },
             },
         },
+        "/api/v1/users/auth/signup/start": {
+            post: {
+                tags: ["Auth"],
+                summary: "Start staged signup",
+                description:
+                    "Creates a pending account and sends an email OTP through the configured email provider.",
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["email", "password", "fullName", "username"],
+                        properties: {
+                            email: { type: "string", format: "email" },
+                            password: { type: "string", format: "password" },
+                            fullName: { type: "string" },
+                            username: { type: "string" },
+                        },
+                    }),
+                },
+                responses: {
+                    201: successResponse("Signup started.", { type: "object" }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/signup/verify-email": {
+            post: {
+                tags: ["Auth"],
+                summary: "Verify signup email OTP",
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["challengeId", "code"],
+                        properties: {
+                            challengeId: { type: "string" },
+                            code: { type: "string" },
+                        },
+                    }),
+                },
+                responses: {
+                    200: successResponse("Email verified.", { type: "object" }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/signup/phone/start": {
+            post: {
+                tags: ["Auth"],
+                summary: "Start optional phone verification",
+                description: protectedDescription(),
+                security: authSecurity,
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["phoneNumber", "channel"],
+                        properties: {
+                            phoneNumber: { type: "string" },
+                            channel: {
+                                type: "string",
+                                enum: ["sms", "whatsapp"],
+                            },
+                        },
+                    }),
+                },
+                responses: {
+                    200: successResponse("Phone OTP sent.", { type: "object" }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/signup/phone/verify": {
+            post: {
+                tags: ["Auth"],
+                summary: "Verify optional phone OTP",
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["challengeId", "code", "channel"],
+                        properties: {
+                            challengeId: { type: "string" },
+                            code: { type: "string" },
+                            channel: {
+                                type: "string",
+                                enum: ["sms", "whatsapp"],
+                            },
+                        },
+                    }),
+                },
+                responses: {
+                    200: emptySuccessResponse,
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/signup/mfa/setup": {
+            post: {
+                tags: ["Auth"],
+                summary: "Create authenticator app setup",
+                description: protectedDescription(),
+                security: authSecurity,
+                responses: {
+                    200: successResponse("Authenticator setup.", {
+                        type: "object",
+                        properties: { otpauthUrl: { type: "string" } },
+                    }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/signup/mfa/verify": {
+            post: {
+                tags: ["Auth"],
+                summary: "Verify authenticator setup",
+                description: protectedDescription(),
+                security: authSecurity,
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["code"],
+                        properties: { code: { type: "string" } },
+                    }),
+                },
+                responses: {
+                    200: successResponse("MFA enabled.", { type: "object" }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/login/start": {
+            post: {
+                tags: ["Auth"],
+                summary: "Start smart login",
+                description:
+                    "Supports email-password, email-otp, phone-sms-otp, and phone-whatsapp-otp. May return captchaRequired or mfaRequired.",
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["method", "identifier"],
+                        properties: {
+                            method: {
+                                type: "string",
+                                enum: [
+                                    "email-password",
+                                    "email-otp",
+                                    "phone-sms-otp",
+                                    "phone-whatsapp-otp",
+                                ],
+                            },
+                            identifier: { type: "string" },
+                            password: { type: "string" },
+                            captchaToken: { type: "string" },
+                        },
+                    }),
+                },
+                responses: {
+                    200: successResponse("Login step started.", {
+                        type: "object",
+                    }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/login/verify-otp": {
+            post: {
+                tags: ["Auth"],
+                summary: "Verify login OTP",
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["challengeId", "code", "method"],
+                        properties: {
+                            challengeId: { type: "string" },
+                            code: { type: "string" },
+                            method: { type: "string" },
+                        },
+                    }),
+                },
+                responses: {
+                    200: successResponse("OTP verified.", { type: "object" }),
+                    ...standardErrors,
+                },
+            },
+        },
+        "/api/v1/users/auth/login/verify-mfa": {
+            post: {
+                tags: ["Auth"],
+                summary: "Verify login MFA challenge",
+                requestBody: {
+                    required: true,
+                    content: jsonContent({
+                        type: "object",
+                        required: ["challengeId", "code"],
+                        properties: {
+                            challengeId: { type: "string" },
+                            code: { type: "string" },
+                        },
+                    }),
+                },
+                responses: {
+                    200: successResponse("MFA verified.", { type: "object" }),
+                    ...standardErrors,
+                },
+            },
+        },
         "/api/v1/users/refresh-token": {
             post: {
                 tags: ["Auth"],

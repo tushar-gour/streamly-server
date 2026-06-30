@@ -87,6 +87,8 @@ class PrismaUserRepository extends UserRepository {
                 password: await bcrypt.hash(userData.password, saltRounds),
                 avatar: userData.avatar,
                 coverImage: userData.coverImage || "",
+                phoneNumber: userData.phoneNumber,
+                onboardingStatus: userData.onboardingStatus || "active",
             },
         });
 

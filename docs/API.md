@@ -73,6 +73,24 @@ POST /api/v1/users/logout-all
 GET  /api/v1/users/current-user
 ```
 
+## Hosted Auth Platform Routes
+
+```txt
+POST /api/v1/users/auth/signup/start
+POST /api/v1/users/auth/signup/verify-email
+POST /api/v1/users/auth/signup/phone/start
+POST /api/v1/users/auth/signup/phone/verify
+POST /api/v1/users/auth/signup/mfa/setup
+POST /api/v1/users/auth/signup/mfa/verify
+POST /api/v1/users/auth/login/start
+POST /api/v1/users/auth/login/verify-otp
+POST /api/v1/users/auth/login/verify-mfa
+```
+
+These routes support staged signup, email OTP, optional phone verification by
+SMS or WhatsApp, authenticator-app MFA, and smart captcha responses when risk is
+elevated.
+
 ## Response Format
 
 Success responses follow the existing shared response style:
@@ -145,7 +163,7 @@ changing the upload response shape.
 - Subscriptions
 - Dashboard
 
-Business route count: `43`.
+Business route count: `52`.
 
 ## Video Streaming
 

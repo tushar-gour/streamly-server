@@ -22,7 +22,7 @@ main
 Business route count:
 
 ```txt
-43
+52
 ```
 
 Production domain:
@@ -140,7 +140,7 @@ Expected result:
 - formatting passes
 - lint passes
 - syntax check passes
-- smoke route count remains `43`
+- smoke route count remains `52`
 - tests pass with guarded DB integration skipped unless explicitly enabled
 - OpenAPI validation passes
 - Prisma schema validates
@@ -195,6 +195,6 @@ The roadmap is complete because:
 - local verification passes
 - Docker verification passes
 - jobs verification passes
-- business route count remains `43`
+- business route count remains `52`
 - no secrets are committed
 - no deployment or SSL work is falsely claimed

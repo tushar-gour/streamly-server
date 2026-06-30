@@ -18,7 +18,7 @@ repository is a complete backend engineering portfolio project with a
 production-style local runtime, owner-confirmed HTTPS domain, and
 deployment-ready documentation.
 
-**Business route count:** `43`  
+**Business route count:** `52`  
 **Production domain:** `https://streamly.zytheran.me`  
 **Runtime shape:** `Nginx -> Express API -> PostgreSQL / Redis / BullMQ worker`
 
@@ -51,10 +51,10 @@ runtime operations, and developer experience.
 | --- | --- |
 | Clean Architecture | Controllers stay thin, services own workflows, repositories isolate persistence |
 | PostgreSQL + Prisma | Relational schema, migrations, constraints, repository-backed data access |
-| Production Auth | JWT access tokens, refresh token rotation, hashed refresh tokens, persistent sessions |
+| Production Auth | JWT access tokens, refresh rotation, OTP login, TOTP MFA, short-lived MFA trust |
 | Authorization | RBAC roles, permissions, user-role mappings, ownership policies |
 | Redis + BullMQ | Cache foundation, queue infrastructure, separate worker runtime |
-| Provider Integrations | Twilio SendGrid email and Twilio SMS providers with safe no-op fallback |
+| Provider Integrations | AWS S3, SendGrid, Twilio SMS, Twilio WhatsApp, Cloudflare Turnstile |
 | Security Hardening | Helmet, CORS, rate limits, sanitization, secure cookies, trusted proxy |
 | Observability | Pino JSON logs, request IDs, correlation IDs, redaction, audit log foundation |
 | Docker Runtime | App, worker, PostgreSQL, Redis, and Nginx in Docker Compose |
@@ -80,7 +80,9 @@ flowchart LR
     Queues --> Worker["Worker service"]
     Worker --> Redis["Redis"]
     Worker --> Postgres
-    API --> Cloudinary["Cloudinary media storage"]
+    API --> Cloudflare["Cloudflare Turnstile"]
+    API --> S3["AWS S3 media storage"]
+    API --> Cloudinary["Cloudinary fallback"]
 ```
 
 Core dependency direction:
@@ -235,7 +237,7 @@ The API uses bearer access tokens and also supports auth cookies where
 configured. Exact route contracts, request bodies, multipart upload fields,
 pagination behavior, and error shapes are documented in OpenAPI.
 
-Business route count: `43`.
+Business route count: `52`.
 
 Streaming route:
 
@@ -443,7 +445,7 @@ nginx/                       reverse proxy config
 - AWS deployment is manual and not automated in this repository.
 - Real credentials must be configured by the owner in production env files.
 - Twilio SendGrid and Twilio SMS providers require production credentials.
-- S3 storage is prepared through env placeholders, not active by default.
+- S3 storage is available through `MEDIA_STORAGE_PROVIDER=s3`; production credentials must be configured by owner.
 - Redis-backed distributed rate limiting is not implemented.
 - External monitoring and tracing are not integrated.
 - Database-backed integration tests are guarded by default.

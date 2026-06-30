@@ -19,6 +19,14 @@ const processThumbnailJob = async (job) => {
         };
     }
 
+    if (appConfig.media.storageProvider === "s3") {
+        return {
+            generated: false,
+            provider: "s3",
+            mode: "s3-frame-extraction-not-configured",
+        };
+    }
+
     const { videoId, videoUrl } = job.data;
     const result = await thumbnailProvider.generateFromVideo({
         videoId,

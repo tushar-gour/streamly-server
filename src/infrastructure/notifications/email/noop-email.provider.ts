@@ -24,6 +24,22 @@ class NoopEmailProvider {
             provider: "noop",
         };
     }
+
+    async sendOtp(payload: { userId?: string; email?: string }) {
+        noopEmailLogger.info(
+            {
+                userId: payload.userId,
+                recipientConfigured: Boolean(payload.email),
+                deliveryMode: "noop",
+            },
+            "otp email delivery skipped"
+        );
+
+        return {
+            delivered: false,
+            provider: "noop",
+        };
+    }
 }
 
 export { NoopEmailProvider };

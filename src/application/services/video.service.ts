@@ -24,6 +24,7 @@ class VideoService {
         likeRepository,
         commentRepository,
         cloudinaryService,
+        mediaStorageService,
         cacheService,
         authorizationService,
         mediaStreamService,
@@ -34,6 +35,7 @@ class VideoService {
         this.likeRepository = likeRepository;
         this.commentRepository = commentRepository;
         this.cloudinaryService = cloudinaryService;
+        this.mediaStorageService = mediaStorageService || cloudinaryService;
         this.cacheService = cacheService;
         this.authorizationService = authorizationService;
         this.mediaStreamService = mediaStreamService;
@@ -152,10 +154,10 @@ class VideoService {
         }
 
         const [videoUpload, thumbnailUpload] = await Promise.all([
-            this.cloudinaryService.upload(videoFile.path, {
+            this.mediaStorageService.upload(videoFile.path, {
                 resource_type: "video",
             }),
-            this.cloudinaryService.upload(thumbnailFile.path),
+            this.mediaStorageService.upload(thumbnailFile.path),
         ]);
 
         if (!videoUpload) {
@@ -220,7 +222,7 @@ class VideoService {
             const oldThumbnailPublicId = this.cloudinaryService.extractPublicId(
                 video.thumbnail
             );
-            const thumbnailUpload = await this.cloudinaryService.upload(
+            const thumbnailUpload = await this.mediaStorageService.upload(
                 file.path
             );
 
@@ -232,7 +234,7 @@ class VideoService {
                 thumbnailUpload.secureUrl || thumbnailUpload.url;
 
             if (oldThumbnailPublicId) {
-                this.cloudinaryService
+                this.mediaStorageService
                     .delete(oldThumbnailPublicId)
                     .catch((error) =>
                         videoServiceLogger.warn(
@@ -280,9 +282,9 @@ class VideoService {
 
         Promise.all([
             videoPublicId &&
-                this.cloudinaryService.delete(videoPublicId, "video"),
+                this.mediaStorageService.delete(videoPublicId, "video"),
             thumbnailPublicId &&
-                this.cloudinaryService.delete(thumbnailPublicId),
+                this.mediaStorageService.delete(thumbnailPublicId),
         ]).catch((error) =>
             videoServiceLogger.warn(
                 { error: { message: error.message } },

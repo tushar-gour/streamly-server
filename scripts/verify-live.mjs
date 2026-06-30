@@ -64,9 +64,9 @@ const runLiveVerification = async () => {
             throw new Error(`Health route returned ${healthResponse.status}`);
         }
 
-        if (routes.length !== 43) {
+        if (routes.length !== 52) {
             throw new Error(
-                `Expected 43 route handlers, found ${routes.length}`
+                `Expected 52 route handlers, found ${routes.length}`
             );
         }
 

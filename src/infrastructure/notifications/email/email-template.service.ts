@@ -49,4 +49,35 @@ const createEmailVerificationTemplate = ({
     };
 };
 
-export { createEmailVerificationTemplate, createEmailVerificationUrl };
+const createOtpEmailTemplate = ({
+    username = "there",
+    code,
+    expiresInMinutes,
+    purpose = "Streamly verification",
+}: {
+    username?: string;
+    code: string;
+    expiresInMinutes: number;
+    purpose?: string;
+}) => {
+    const subject = `${purpose} code`;
+    const text = `Hi ${username},\n\nYour Streamly code is ${code}. It expires in ${expiresInMinutes} minutes.\n\nIf you did not request this, ignore this email.`;
+    const html = `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+            <h2 style="margin:0 0 16px">Streamly verification</h2>
+            <p>Hi ${username},</p>
+            <p>Your verification code is:</p>
+            <p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p>
+            <p>This code expires in ${expiresInMinutes} minutes.</p>
+            <p>If you did not request this, ignore this email.</p>
+        </div>
+    `;
+
+    return { subject, text, html };
+};
+
+export {
+    createEmailVerificationTemplate,
+    createEmailVerificationUrl,
+    createOtpEmailTemplate,
+};

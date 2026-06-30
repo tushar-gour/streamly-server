@@ -1,4 +1,3 @@
-// @ts-nocheck
 import dotenv from "dotenv";
 
 dotenv.config({
@@ -6,7 +5,9 @@ dotenv.config({
 });
 
 class StartupConfigError extends Error {
-    constructor(missingKeys) {
+    missingKeys: string[];
+
+    constructor(missingKeys: string[]) {
         super(
             `Missing required environment variables: ${missingKeys.join(", ")}`
         );
@@ -15,19 +16,20 @@ class StartupConfigError extends Error {
     }
 }
 
-const readEnv = (key, fallback = "") => process.env[key] || fallback;
-const readBooleanEnv = (key, fallback = false) => {
+const readEnv = (key: string, fallback = ""): string =>
+    process.env[key] || fallback;
+const readBooleanEnv = (key: string, fallback = false): boolean => {
     const value = readEnv(key);
     if (!value) return fallback;
     return value === "true";
 };
 
-const readNumberEnv = (key, fallback) => {
+const readNumberEnv = (key: string, fallback: number): number => {
     const value = Number(readEnv(key));
     return Number.isFinite(value) && value > 0 ? value : fallback;
 };
 
-const readTrustProxy = () => {
+const readTrustProxy = (): boolean | number | string => {
     const value = readEnv("TRUST_PROXY", "false");
 
     if (value === "true") return true;
@@ -46,8 +48,16 @@ const appConfig = Object.freeze({
     port: readEnv("PORT", "8000"),
     corsOrigin: readEnv("CORS_ORIGIN", "*"),
     publicBaseUrl: readEnv("APP_PUBLIC_BASE_URL", "http://localhost:8000"),
+    serverPublicBaseUrl: readEnv(
+        "SERVER_PUBLIC_BASE_URL",
+        readEnv("APP_PUBLIC_BASE_URL", "http://localhost:8000")
+    ),
     security: Object.freeze({
         corsCredentials: readBooleanEnv("CORS_CREDENTIALS", true),
+        corsExposeHeaders: readEnv(
+            "CORS_EXPOSE_HEADERS",
+            "Content-Range,Accept-Ranges,Content-Length,Content-Type"
+        ),
         trustProxy: readTrustProxy(),
         jsonBodyLimit: readEnv("JSON_BODY_LIMIT", "16kb"),
         urlencodedBodyLimit: readEnv("URLENCODED_BODY_LIMIT", "16kb"),
@@ -127,6 +137,41 @@ const appConfig = Object.freeze({
             "1d"
         ),
     }),
+    mfa: Object.freeze({
+        enabled: readBooleanEnv("MFA_ENABLED", false),
+        issuer: readEnv("MFA_ISSUER", "Streamly"),
+        trustTokenExpirySeconds: readNumberEnv(
+            "MFA_TRUST_TOKEN_EXPIRY_SECONDS",
+            1800
+        ),
+        challengeExpirySeconds: readNumberEnv(
+            "MFA_CHALLENGE_EXPIRY_SECONDS",
+            300
+        ),
+        deviceCookieName: readEnv(
+            "MFA_DEVICE_COOKIE_NAME",
+            "streamly_device_id"
+        ),
+        trustCookieName: readEnv("MFA_TRUST_COOKIE_NAME", "streamly_mfa_trust"),
+        maxVerifyAttempts: readNumberEnv("MFA_MAX_VERIFY_ATTEMPTS", 5),
+        secretEncryptionKey: readEnv("MFA_SECRET_ENCRYPTION_KEY"),
+    }),
+    otp: Object.freeze({
+        enabled: readBooleanEnv("OTP_ENABLED", false),
+        expirySeconds: readNumberEnv("OTP_EXPIRY_SECONDS", 300),
+        length: readNumberEnv("OTP_LENGTH", 6),
+        maxAttempts: readNumberEnv("OTP_MAX_ATTEMPTS", 5),
+        resendCooldownSeconds: readNumberEnv("OTP_RESEND_COOLDOWN_SECONDS", 60),
+    }),
+    captcha: Object.freeze({
+        enabled: readBooleanEnv("CAPTCHA_ENABLED", false),
+        provider: readEnv("CAPTCHA_PROVIDER", "noop"),
+        turnstileSecretKey: readEnv("TURNSTILE_SECRET_KEY"),
+        turnstileSiteKey: readEnv("TURNSTILE_SITE_KEY"),
+        smartMode: readBooleanEnv("CAPTCHA_SMART_MODE", true),
+        failureThreshold: readNumberEnv("CAPTCHA_FAILURE_THRESHOLD", 3),
+        trustTtlSeconds: readNumberEnv("CAPTCHA_TRUST_TTL_SECONDS", 1800),
+    }),
     email: Object.freeze({
         enabled: readBooleanEnv("EMAIL_ENABLED", false),
         provider: readEnv("EMAIL_PROVIDER", "noop"),
@@ -140,6 +185,7 @@ const appConfig = Object.freeze({
         twilioAccountSid: readEnv("TWILIO_ACCOUNT_SID"),
         twilioAuthToken: readEnv("TWILIO_AUTH_TOKEN"),
         twilioPhoneNumber: readEnv("TWILIO_PHONE_NUMBER"),
+        twilioWhatsAppFrom: readEnv("TWILIO_WHATSAPP_FROM"),
         twilioMessagingServiceSid: readEnv("TWILIO_MESSAGING_SERVICE_SID"),
     }),
     rbac: Object.freeze({
@@ -168,6 +214,7 @@ const appConfig = Object.freeze({
         accessKeyId: readEnv("AWS_ACCESS_KEY_ID"),
         secretAccessKey: readEnv("AWS_SECRET_ACCESS_KEY"),
         s3PublicBaseUrl: readEnv("AWS_S3_PUBLIC_BASE_URL"),
+        s3ForcePathStyle: readBooleanEnv("AWS_S3_FORCE_PATH_STYLE", false),
     }),
 });
 
@@ -175,9 +222,6 @@ const requiredStartupEnvKeys = Object.freeze([
     "DATABASE_URL",
     "ACCESS_TOKEN_SECRET",
     "REFRESH_TOKEN_SECRET",
-    "CLOUDINARY_CLOUD_NAME",
-    "CLOUDINARY_API_KEY",
-    "CLOUDINARY_API_SECRET",
 ]);
 
 const isProduction = () => appConfig.nodeEnv === "production";
@@ -208,6 +252,32 @@ const assertStartupConfig = () => {
                 "TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID"
             );
         }
+    }
+
+    if (
+        appConfig.captcha.enabled &&
+        appConfig.captcha.provider === "turnstile"
+    ) {
+        if (!appConfig.captcha.turnstileSecretKey)
+            missingKeys.push("TURNSTILE_SECRET_KEY");
+    }
+
+    if (appConfig.media.storageProvider === "s3") {
+        if (!appConfig.aws.s3Bucket) missingKeys.push("AWS_S3_BUCKET");
+        if (!appConfig.aws.accessKeyId) missingKeys.push("AWS_ACCESS_KEY_ID");
+        if (!appConfig.aws.secretAccessKey)
+            missingKeys.push("AWS_SECRET_ACCESS_KEY");
+    } else {
+        if (!appConfig.cloudinary.cloudName)
+            missingKeys.push("CLOUDINARY_CLOUD_NAME");
+        if (!appConfig.cloudinary.apiKey)
+            missingKeys.push("CLOUDINARY_API_KEY");
+        if (!appConfig.cloudinary.apiSecret)
+            missingKeys.push("CLOUDINARY_API_SECRET");
+    }
+
+    if (appConfig.mfa.enabled && !appConfig.mfa.secretEncryptionKey) {
+        missingKeys.push("MFA_SECRET_ENCRYPTION_KEY");
     }
 
     if (missingKeys.length > 0) {

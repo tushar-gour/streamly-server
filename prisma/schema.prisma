@@ -18,6 +18,10 @@ model User {
   emailVerifiedAt         DateTime?
   passwordChangedAt       DateTime?
   lastLoginAt             DateTime?
+  phoneNumber             String?                  @unique @db.VarChar(32)
+  phoneVerifiedAt         DateTime?
+  onboardingStatus        String                   @default("active") @db.VarChar(40)
+  mfaEnabledAt            DateTime?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   videos                  Video[]
@@ -30,10 +34,92 @@ model User {
   subscribers             Subscription[]           @relation("ChannelSubscriptions")
   subscribedTo            Subscription[]           @relation("SubscriberSubscriptions")
   watchHistory            WatchHistory[]
+  authChallenges          AuthChallenge[]
+  mfaMethods              UserMfa[]
+  mfaChallenges           MfaChallenge[]
+  mfaTrustTokens          MfaTrustToken[]
 
   @@index([email, username])
   @@index([createdAt])
   @@map("users")
+}
+
+model AuthChallenge {
+  id             String    @id @db.Char(24)
+  userId         String?   @db.Char(24)
+  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  identifierHash String    @db.Char(64)
+  channel        String    @db.VarChar(20)
+  purpose        String    @db.VarChar(60)
+  codeHash       String    @db.Char(64)
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  failedAttempts Int       @default(0)
+  maxAttempts    Int       @default(5)
+  metadataJson   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([identifierHash, purpose, channel])
+  @@index([expiresAt])
+  @@index([consumedAt])
+  @@map("auth_challenges")
+}
+
+model UserMfa {
+  id              String    @id @db.Char(24)
+  userId          String    @db.Char(24)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String    @default("totp") @db.VarChar(20)
+  secretEncrypted String
+  enabledAt       DateTime?
+  lastVerifiedAt  DateTime?
+  recoveryCodesHash Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, type])
+  @@index([enabledAt])
+  @@map("user_mfa")
+}
+
+model MfaChallenge {
+  id                    String    @id @db.Char(24)
+  userId                String    @db.Char(24)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginMethod           String    @db.VarChar(40)
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  failedAttempts        Int       @default(0)
+  deviceFingerprintHash String    @db.Char(64)
+  ipHash                String?   @db.Char(64)
+  userAgentHash         String?   @db.Char(64)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId, expiresAt])
+  @@index([consumedAt])
+  @@map("mfa_challenges")
+}
+
+model MfaTrustToken {
+  id            String    @id @db.Char(24)
+  userId        String    @db.Char(24)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique @db.Char(64)
+  deviceIdHash  String    @db.Char(64)
+  ipHash        String?   @db.Char(64)
+  userAgentHash String?   @db.Char(64)
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  lastUsedAt     DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+  @@index([deviceIdHash])
+  @@index([revokedAt])
+  @@map("mfa_trust_tokens")
 }
 
 model Role {

@@ -15,6 +15,18 @@ Streamly uses JWT access tokens and refresh tokens.
 - Logout revokes the current session.
 - Logout-all revokes all user sessions.
 
+The hosted auth platform also supports staged signup, OTP login, and
+authenticator-app MFA:
+
+- email/password signup starts a pending account
+- email OTP verifies ownership before onboarding continues
+- optional phone verification can use Twilio SMS or Twilio WhatsApp
+- authenticator-app TOTP is required for completed onboarding
+- login supports email-password, email-otp, phone-sms-otp, and
+  phone-whatsapp-otp start methods
+- full sessions are issued only after MFA unless a short-lived MFA trust token
+  is valid for the same device context
+
 ## Refresh Token Rotation
 
 ```mermaid
@@ -48,6 +60,26 @@ Session fields include:
 - last used timestamp
 
 Raw refresh tokens are not stored.
+
+## MFA Trust Token
+
+MFA trust uses a short-lived hashed trust token bound to:
+
+- user id
+- HttpOnly device id cookie
+- user-agent hash
+- IP hash
+- expiry timestamp
+
+MAC addresses are intentionally not used. Browser and HTTP backends cannot
+reliably read client MAC addresses.
+
+## Smart Captcha
+
+Cloudflare Turnstile is supported through a provider abstraction. Smart captcha
+is risk-based: normal requests avoid captcha prompts, while repeated login or
+OTP abuse can require Turnstile. The Turnstile secret and user token are never
+logged.
 
 ## Email Verification Tokens
 

@@ -23,6 +23,7 @@ class UserService {
         userRoleRepository,
         authService,
         cloudinaryService,
+        mediaStorageService,
         emailVerificationService,
     }) {
         this.userRepository = userRepository;
@@ -30,6 +31,7 @@ class UserService {
         this.userRoleRepository = userRoleRepository;
         this.authService = authService;
         this.cloudinaryService = cloudinaryService;
+        this.mediaStorageService = mediaStorageService || cloudinaryService;
         this.emailVerificationService = emailVerificationService;
     }
 
@@ -69,14 +71,14 @@ class UserService {
         }
 
         const coverImageLocalPath = files?.coverImage?.[0]?.path;
-        const avatar = await this.cloudinaryService.upload(avatarLocalPath);
+        const avatar = await this.mediaStorageService.upload(avatarLocalPath);
 
         if (!avatar) {
             throw new ApiError(500, "Failed to upload avatar image");
         }
 
         const coverImage = coverImageLocalPath
-            ? await this.cloudinaryService.upload(coverImageLocalPath)
+            ? await this.mediaStorageService.upload(coverImageLocalPath)
             : null;
 
         const user = await this.userRepository.createUser({
@@ -270,7 +272,7 @@ class UserService {
         const oldAvatarPublicId = this.cloudinaryService.extractPublicId(
             currentUser.avatar
         );
-        const avatar = await this.cloudinaryService.upload(avatarLocalPath);
+        const avatar = await this.mediaStorageService.upload(avatarLocalPath);
 
         if (!avatar) {
             throw new ApiError(500, "Failed to upload avatar");
@@ -283,7 +285,7 @@ class UserService {
         );
 
         if (oldAvatarPublicId) {
-            this.cloudinaryService
+            this.mediaStorageService
                 .delete(oldAvatarPublicId)
                 .catch((error) =>
                     userServiceLogger.warn(
@@ -308,7 +310,7 @@ class UserService {
             currentUser.coverImage
         );
         const coverImage =
-            await this.cloudinaryService.upload(coverImageLocalPath);
+            await this.mediaStorageService.upload(coverImageLocalPath);
 
         if (!coverImage) {
             throw new ApiError(500, "Failed to upload cover image");
@@ -321,7 +323,7 @@ class UserService {
         );
 
         if (oldCoverPublicId) {
-            this.cloudinaryService
+            this.mediaStorageService
                 .delete(oldCoverPublicId)
                 .catch((error) =>
                     userServiceLogger.warn(

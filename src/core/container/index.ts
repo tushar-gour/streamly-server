@@ -3,6 +3,9 @@ import { cloudinaryService } from "../../infrastructure/cloudinary/cloudinary.se
 import { CacheService } from "../../infrastructure/cache/cache.service.js";
 import { CloudinaryStreamProvider } from "../../infrastructure/media/cloudinary-stream.provider.js";
 import { MediaStreamService } from "../../infrastructure/media/media-stream.service.js";
+import { mediaStorageService } from "../../infrastructure/media/media-storage.service.js";
+import { S3MediaProvider } from "../../infrastructure/media/s3-media.provider.js";
+import { appConfig } from "../../config/env.js";
 import { databaseHealthService } from "../../infrastructure/database/database-health.service.js";
 import { redisService } from "../../infrastructure/redis/redis.service.js";
 import { PrismaCommentRepository } from "../../infrastructure/repositories/comment.repository.js";
@@ -22,11 +25,14 @@ import { EmailJobProducer } from "../../infrastructure/jobs/producers/email-job.
 import { NotificationJobProducer } from "../../infrastructure/jobs/producers/notification-job.producer.js";
 import { ThumbnailJobProducer } from "../../infrastructure/jobs/producers/thumbnail-job.producer.js";
 import { AuthService } from "../../application/services/auth.service.js";
+import { AuthPlatformService } from "../../application/services/auth-platform.service.js";
 import { AuthorizationService } from "../../application/services/authorization.service.js";
 import { CommentService } from "../../application/services/comment.service.js";
 import { DashboardService } from "../../application/services/dashboard.service.js";
 import { EmailVerificationService } from "../../application/services/email-verification.service.js";
 import { HealthcheckService } from "../../application/services/healthcheck.service.js";
+import { MfaService } from "../../application/services/mfa.service.js";
+import { OtpService } from "../../application/services/otp.service.js";
 import { LikeService } from "../../application/services/like.service.js";
 import { PlaylistService } from "../../application/services/playlist.service.js";
 import { PolicyService } from "../../application/services/policy.service.js";
@@ -53,11 +59,15 @@ const notificationJobProducer = new NotificationJobProducer();
 const thumbnailJobProducer = new ThumbnailJobProducer();
 const cleanupJobProducer = new CleanupJobProducer();
 const cacheService = new CacheService({ redisService });
-const mediaStreamService = new MediaStreamService(
-    new CloudinaryStreamProvider()
-);
+const mediaProvider =
+    appConfig.media.storageProvider === "s3"
+        ? new S3MediaProvider()
+        : new CloudinaryStreamProvider();
+const mediaStreamService = new MediaStreamService(mediaProvider);
 
 const tokenService = new TokenService();
+const otpService = new OtpService();
+const mfaService = new MfaService();
 const authService = new AuthService({
     userRepository,
     sessionRepository,
@@ -77,6 +87,13 @@ const policyService = new PolicyService({
     commentRepository,
     playlistRepository,
 });
+const authPlatformService = new AuthPlatformService({
+    otpService,
+    mfaService,
+    authService,
+    roleRepository,
+    userRoleRepository,
+});
 
 const container = Object.freeze({
     repositories: {
@@ -95,7 +112,10 @@ const container = Object.freeze({
     },
     services: {
         tokenService,
+        otpService,
+        mfaService,
         authService,
+        authPlatformService,
         authorizationService,
         policyService,
         emailVerificationService,
@@ -105,6 +125,7 @@ const container = Object.freeze({
             userRoleRepository,
             authService,
             cloudinaryService,
+            mediaStorageService,
             emailVerificationService,
         }),
         videoService: new VideoService({
@@ -113,6 +134,7 @@ const container = Object.freeze({
             likeRepository,
             commentRepository,
             cloudinaryService,
+            mediaStorageService,
             cacheService,
             authorizationService,
             mediaStreamService,
@@ -151,6 +173,7 @@ const container = Object.freeze({
             redisService,
         }),
         cacheService,
+        mediaStorageService,
         mediaStreamService,
     },
     jobs: {

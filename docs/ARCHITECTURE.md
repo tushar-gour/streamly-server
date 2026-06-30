@@ -249,7 +249,7 @@ Services:
 
 ## Boundaries Preserved
 
-- API route count is now `43` after adding the video streaming endpoint.
+- API route count is now `52` after adding video streaming and auth-platform routes.
 - Runtime source is TypeScript and builds to `dist/`.
 - Public API response style is preserved.
 - Cloudinary behavior is adapter-based.

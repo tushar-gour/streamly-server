@@ -2,7 +2,10 @@ import sendgridMail from "@sendgrid/mail";
 
 import { appConfig } from "../../../config/env.js";
 import { createLogger, serializeError } from "../../logger/logger.js";
-import { createEmailVerificationTemplate } from "./email-template.service.js";
+import {
+    createEmailVerificationTemplate,
+    createOtpEmailTemplate,
+} from "./email-template.service.js";
 
 const sendgridLogger = createLogger("sendgrid-email-provider");
 
@@ -66,6 +69,48 @@ class SendGridEmailProvider {
             );
             throw error;
         }
+    }
+
+    async sendOtp(payload: {
+        userId?: string;
+        email?: string;
+        username?: string;
+        code?: string;
+        expiresInMinutes?: number;
+        purpose?: string;
+    }) {
+        if (!payload.email || !payload.code) {
+            throw new Error("Email recipient and OTP code are required");
+        }
+
+        this.#configure();
+        const template = createOtpEmailTemplate({
+            username: payload.username,
+            code: payload.code,
+            expiresInMinutes: payload.expiresInMinutes || 5,
+            purpose: payload.purpose,
+        });
+
+        await sendgridMail.send({
+            to: payload.email,
+            from: {
+                email: appConfig.email.sendgridFromEmail,
+                name: appConfig.email.sendgridFromName,
+            },
+            subject: template.subject,
+            text: template.text,
+            html: template.html,
+        });
+
+        sendgridLogger.info(
+            { userId: payload.userId, provider: "sendgrid" },
+            "otp email sent"
+        );
+
+        return {
+            delivered: true,
+            provider: "sendgrid",
+        };
     }
 }
 

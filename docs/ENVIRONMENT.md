@@ -19,6 +19,7 @@ deployment preparation. Never commit real `.env`, `.env.docker`, or
 | --- | --- | --- | --- |
 | `CORS_ORIGIN` | Yes | `*` | Allowed origins |
 | `CORS_CREDENTIALS` | Optional | `true` | Enable credentials |
+| `CORS_EXPOSE_HEADERS` | Optional | `Content-Range,...` | Streaming response headers exposed to browsers |
 | `TRUST_PROXY` | Optional | `false` local, `1` Docker/Nginx | Express trust proxy |
 
 Production should use explicit `CORS_ORIGIN` values.
@@ -95,7 +96,8 @@ redis://redis:6379
 | `THUMBNAIL_QUEUE_ENABLED` | Optional | `false` local, `true` production | Thumbnail queue |
 
 Thumbnail processing generates Cloudinary thumbnail transformation URLs when
-enabled.
+enabled for Cloudinary media. S3 thumbnail workers can be extended for
+ffmpeg-based frame extraction.
 
 ## Cache
 
@@ -117,6 +119,36 @@ enabled.
 | `EMAIL_VERIFICATION_TOKEN_EXPIRY` | Optional | `1d` | Verification token lifetime |
 
 Use long random secrets in production.
+
+## MFA And OTP
+
+| Variable | Required | Safe local example | Purpose |
+| --- | --- | --- | --- |
+| `MFA_ENABLED` | Optional | `false` | Enables authenticator MFA flow |
+| `MFA_ISSUER` | Optional | `Streamly` | Authenticator issuer label |
+| `MFA_SECRET_ENCRYPTION_KEY` | Conditional | empty | Required when MFA is enabled |
+| `MFA_TRUST_TOKEN_EXPIRY_SECONDS` | Optional | `1800` | Trusted-device MFA skip window |
+| `MFA_CHALLENGE_EXPIRY_SECONDS` | Optional | `300` | MFA challenge lifetime |
+| `MFA_DEVICE_COOKIE_NAME` | Optional | `streamly_device_id` | Device id cookie |
+| `MFA_TRUST_COOKIE_NAME` | Optional | `streamly_mfa_trust` | MFA trust cookie |
+| `MFA_MAX_VERIFY_ATTEMPTS` | Optional | `5` | Max MFA attempts |
+| `OTP_ENABLED` | Optional | `false` | Enables OTP challenge flows |
+| `OTP_EXPIRY_SECONDS` | Optional | `300` | OTP lifetime |
+| `OTP_LENGTH` | Optional | `6` | OTP code length |
+| `OTP_MAX_ATTEMPTS` | Optional | `5` | Max OTP attempts |
+| `OTP_RESEND_COOLDOWN_SECONDS` | Optional | `60` | Resend cooldown |
+
+## Cloudflare Turnstile
+
+| Variable | Required | Safe local example | Purpose |
+| --- | --- | --- | --- |
+| `CAPTCHA_PROVIDER` | Optional | `noop` local, `turnstile` production | Captcha provider |
+| `CAPTCHA_ENABLED` | Optional | `false` | Enables captcha verification |
+| `TURNSTILE_SECRET_KEY` | Conditional | empty | Server-side secret |
+| `TURNSTILE_SITE_KEY` | Optional | empty | Public site key returned to clients |
+| `CAPTCHA_SMART_MODE` | Optional | `true` | Risk-based captcha prompts |
+| `CAPTCHA_FAILURE_THRESHOLD` | Optional | `3` | Failure count before captcha |
+| `CAPTCHA_TRUST_TTL_SECONDS` | Optional | `1800` | Captcha trust TTL |
 
 ## Email / Twilio SendGrid
 
@@ -140,6 +172,7 @@ SendGrid credentials are required only when `EMAIL_ENABLED=true` and
 | `TWILIO_ACCOUNT_SID` | Conditional | empty | Twilio account SID |
 | `TWILIO_AUTH_TOKEN` | Conditional | empty | Twilio auth token |
 | `TWILIO_PHONE_NUMBER` | Conditional | empty | Twilio sender phone |
+| `TWILIO_WHATSAPP_FROM` | Optional | `whatsapp:+14155238886` | Twilio WhatsApp sender |
 | `TWILIO_MESSAGING_SERVICE_SID` | Optional | empty | Twilio messaging service |
 
 Twilio credentials are required only when `SMS_ENABLED=true` and
@@ -169,29 +202,29 @@ Do not use real Cloudinary secrets in examples.
 
 | Variable | Required | Safe local example | Purpose |
 | --- | --- | --- | --- |
-| `MEDIA_STORAGE_PROVIDER` | Optional | `cloudinary` | Active media provider |
+| `MEDIA_STORAGE_PROVIDER` | Optional | `cloudinary` | Active media provider: `cloudinary` or `s3` |
 | `VIDEO_STREAMING_ENABLED` | Optional | `true` | Enables HTTP Range stream endpoint |
 | `THUMBNAIL_GENERATION_ENABLED` | Optional | `false` local, `true` production | Enables thumbnail generation |
 | `THUMBNAIL_WIDTH` | Optional | `1280` | Generated thumbnail width |
 | `THUMBNAIL_HEIGHT` | Optional | `720` | Generated thumbnail height |
 | `THUMBNAIL_FORMAT` | Optional | `jpg` | Generated thumbnail format |
 
-The active provider remains Cloudinary. The stream endpoint proxies trusted
-stored media URLs and supports Range responses when the upstream provider
-supports them.
+Cloudinary remains the safe local default. S3 is available for production with
+`MEDIA_STORAGE_PROVIDER=s3` and streams trusted object keys with Range reads.
 
 ## AWS/S3 Readiness
 
 | Variable | Required | Safe local example | Purpose |
 | --- | --- | --- | --- |
-| `AWS_REGION` | Optional | `ap-south-1` | Future AWS region placeholder |
-| `AWS_S3_BUCKET` | Optional | empty | Future S3 bucket placeholder |
-| `AWS_ACCESS_KEY_ID` | Optional | empty | Future AWS access key placeholder |
-| `AWS_SECRET_ACCESS_KEY` | Optional | empty | Future AWS secret placeholder |
-| `AWS_S3_PUBLIC_BASE_URL` | Optional | empty | Future S3 public base URL |
+| `AWS_REGION` | Required for S3 | `ap-south-1` | AWS region |
+| `AWS_S3_BUCKET` | Required for S3 | empty | S3 bucket |
+| `AWS_ACCESS_KEY_ID` | Required for S3 | empty | AWS access key |
+| `AWS_SECRET_ACCESS_KEY` | Required for S3 | empty | AWS secret |
+| `AWS_S3_PUBLIC_BASE_URL` | Optional | empty | CloudFront or S3 public base URL |
+| `AWS_S3_FORCE_PATH_STYLE` | Optional | `false` | Path-style S3 compatibility |
 
-AWS values are placeholders only. S3 storage is not active unless a future S3
-provider is implemented and enabled.
+AWS values are required only when `MEDIA_STORAGE_PROVIDER=s3`. Tests and CI keep
+S3 disabled unless explicitly configured.
 
 ## CI Notes
 

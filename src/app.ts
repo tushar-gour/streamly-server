@@ -22,6 +22,7 @@ import {
 
 import healthcheckRouter from "./presentation/routes/healthcheck.routes.js";
 import userRouter from "./presentation/routes/user.routes.js";
+import authPlatformRouter from "./presentation/routes/auth-platform.routes.js";
 import videoRouter from "./presentation/routes/video.routes.js";
 import commentRouter from "./presentation/routes/comment.routes.js";
 import dashboardRouter from "./presentation/routes/dashboard.routes.js";
@@ -59,10 +60,10 @@ class Application {
                     "X-Correlation-Id",
                 ],
                 exposedHeaders: [
-                    "Accept-Ranges",
-                    "Content-Range",
-                    "Content-Length",
-                    "Content-Type",
+                    ...appConfig.security.corsExposeHeaders
+                        .split(",")
+                        .map((header) => header.trim())
+                        .filter(Boolean),
                     "X-Request-Id",
                     "X-Correlation-Id",
                 ],
@@ -137,6 +138,7 @@ class Application {
         this.app.use(`${API_PREFIX}/healthcheck`, healthcheckRouter);
 
         this.app.use(`${API_PREFIX}/users`, userRouter);
+        this.app.use(`${API_PREFIX}/users/auth`, authPlatformRouter);
         this.app.use(`${API_PREFIX}/videos`, videoRouter);
         this.app.use(`${API_PREFIX}/comments`, commentRouter);
         this.app.use(`${API_PREFIX}/likes`, likeRouter);

@@ -2,6 +2,27 @@
 
 All notable changes to Streamly are documented here.
 
+## [1.3.0] - 2026-06-30
+
+### Added
+
+- Added AWS S3 media provider with upload, delete, and Range streaming support.
+- Added Cloudflare Turnstile provider and Redis-backed smart captcha risk state.
+- Added OTP challenge persistence for email, SMS, and WhatsApp flows.
+- Added authenticator-app MFA persistence, challenge records, and trust tokens.
+- Added Twilio WhatsApp notification provider infrastructure.
+- Added staged auth-platform signup and login routes.
+- Added Prisma migration for phone verification, OTP challenges, MFA methods,
+  MFA challenges, and MFA trust tokens.
+
+### Changed
+
+- Updated production env template for AWS EC2/S3/RDS, Upstash Redis, Twilio,
+  SendGrid, Cloudflare Turnstile, OTP, and MFA.
+- Updated OpenAPI route documentation and route baseline to 52 handlers.
+- Kept Cloudinary as local fallback while enabling S3 as production media
+  provider.
+
 ## [1.2.0] - 2026-06-30
 
 ### Added

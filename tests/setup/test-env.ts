@@ -27,6 +27,16 @@ process.env.EMAIL_ENABLED = process.env.EMAIL_ENABLED || "false";
 process.env.EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || "noop";
 process.env.SMS_ENABLED = process.env.SMS_ENABLED || "false";
 process.env.SMS_PROVIDER = process.env.SMS_PROVIDER || "noop";
+process.env.TWILIO_WHATSAPP_FROM =
+    process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+14155238886";
+process.env.MFA_ENABLED = process.env.MFA_ENABLED || "false";
+process.env.MFA_SECRET_ENCRYPTION_KEY =
+    process.env.MFA_SECRET_ENCRYPTION_KEY || "";
+process.env.OTP_ENABLED = process.env.OTP_ENABLED || "false";
+process.env.CAPTCHA_ENABLED = process.env.CAPTCHA_ENABLED || "false";
+process.env.CAPTCHA_PROVIDER = process.env.CAPTCHA_PROVIDER || "noop";
+process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || "";
+process.env.TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY || "";
 process.env.CLOUDINARY_CLOUD_NAME =
     process.env.CLOUDINARY_CLOUD_NAME || "test_cloud";
 process.env.CLOUDINARY_API_KEY =

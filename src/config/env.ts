@@ -112,7 +112,7 @@ const appConfig = Object.freeze({
         specRoute: readEnv("API_DOCS_SPEC_ROUTE", "/api/v1/docs/openapi.json"),
         serverUrl: readEnv(
             "API_DOCS_SERVER_URL",
-            "http://streamly.zytheran.me"
+            "https://streamly.zytheran.me"
         ),
     }),
     jwt: Object.freeze({
@@ -127,6 +127,21 @@ const appConfig = Object.freeze({
             "1d"
         ),
     }),
+    email: Object.freeze({
+        enabled: readBooleanEnv("EMAIL_ENABLED", false),
+        provider: readEnv("EMAIL_PROVIDER", "noop"),
+        sendgridApiKey: readEnv("SENDGRID_API_KEY"),
+        sendgridFromEmail: readEnv("SENDGRID_FROM_EMAIL"),
+        sendgridFromName: readEnv("SENDGRID_FROM_NAME", "Streamly"),
+    }),
+    sms: Object.freeze({
+        enabled: readBooleanEnv("SMS_ENABLED", false),
+        provider: readEnv("SMS_PROVIDER", "noop"),
+        twilioAccountSid: readEnv("TWILIO_ACCOUNT_SID"),
+        twilioAuthToken: readEnv("TWILIO_AUTH_TOKEN"),
+        twilioPhoneNumber: readEnv("TWILIO_PHONE_NUMBER"),
+        twilioMessagingServiceSid: readEnv("TWILIO_MESSAGING_SERVICE_SID"),
+    }),
     rbac: Object.freeze({
         defaultRole: readEnv("RBAC_DEFAULT_ROLE", "user"),
         adminEmail: readEnv("RBAC_ADMIN_EMAIL"),
@@ -139,6 +154,13 @@ const appConfig = Object.freeze({
     media: Object.freeze({
         storageProvider: readEnv("MEDIA_STORAGE_PROVIDER", "cloudinary"),
         videoStreamingEnabled: readBooleanEnv("VIDEO_STREAMING_ENABLED", true),
+        thumbnailGenerationEnabled: readBooleanEnv(
+            "THUMBNAIL_GENERATION_ENABLED",
+            false
+        ),
+        thumbnailWidth: readNumberEnv("THUMBNAIL_WIDTH", 1280),
+        thumbnailHeight: readNumberEnv("THUMBNAIL_HEIGHT", 720),
+        thumbnailFormat: readEnv("THUMBNAIL_FORMAT", "jpg"),
     }),
     aws: Object.freeze({
         region: readEnv("AWS_REGION", "ap-south-1"),
@@ -165,6 +187,28 @@ const getMissingStartupEnvKeys = () =>
 
 const assertStartupConfig = () => {
     const missingKeys = getMissingStartupEnvKeys();
+
+    if (appConfig.email.enabled && appConfig.email.provider === "sendgrid") {
+        if (!appConfig.email.sendgridApiKey)
+            missingKeys.push("SENDGRID_API_KEY");
+        if (!appConfig.email.sendgridFromEmail)
+            missingKeys.push("SENDGRID_FROM_EMAIL");
+    }
+
+    if (appConfig.sms.enabled && appConfig.sms.provider === "twilio") {
+        if (!appConfig.sms.twilioAccountSid)
+            missingKeys.push("TWILIO_ACCOUNT_SID");
+        if (!appConfig.sms.twilioAuthToken)
+            missingKeys.push("TWILIO_AUTH_TOKEN");
+        if (
+            !appConfig.sms.twilioPhoneNumber &&
+            !appConfig.sms.twilioMessagingServiceSid
+        ) {
+            missingKeys.push(
+                "TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID"
+            );
+        }
+    }
 
     if (missingKeys.length > 0) {
         throw new StartupConfigError(missingKeys);

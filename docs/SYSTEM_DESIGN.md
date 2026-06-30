@@ -117,14 +117,14 @@ fail API requests.
 
 BullMQ queues offload background-ready workflows:
 
-- email verification job foundation
-- notification job foundation
+- email verification through SendGrid when configured
+- notification job foundation with Twilio SMS provider support
 - auth cleanup jobs
-- thumbnail placeholder jobs
+- Cloudinary thumbnail generation jobs
 - job health verification
 
-No real email provider is integrated. No notification product or dashboard is
-implemented.
+Provider calls use safe no-op behavior unless explicitly enabled and
+configured. No notification product or dashboard is implemented.
 
 ## Security Considerations
 
@@ -172,8 +172,8 @@ flowchart TD
     Worker --> Postgres
 ```
 
-The planned domain is `streamly.zytheran.me`. DNS and HTTPS are not automated in
-this repository.
+The production domain is owner-confirmed as `https://streamly.zytheran.me`.
+DNS and HTTPS renewal automation are not managed by this repository.
 
 ## Tradeoffs
 
@@ -181,17 +181,17 @@ this repository.
 - Video streaming uses a trusted media provider abstraction and HTTP Range requests.
 - Docker Compose is used instead of Kubernetes for approachable local runtime.
 - Redis-backed distributed rate limiting is deferred.
-- Email delivery is stubbed to avoid committing provider-specific integration.
-- Thumbnail processing is a placeholder to avoid adding media dependencies.
+- Email and SMS provider integrations require production credentials.
+- Thumbnail processing uses Cloudinary transformations and does not download
+  full videos.
 - Database-backed integration tests are guarded, not enabled by default in CI.
 - Dependency advisories are reported but not fixed in this documentation phase.
 
 ## Limitations
 
 - No live deployment is claimed.
-- No HTTPS or certificate automation.
+- No certificate renewal automation.
 - No external monitoring provider.
-- No real email provider.
 - No admin UI.
 - No formal security audit.
 - No hard coverage threshold.

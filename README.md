@@ -7,19 +7,19 @@
 ![Redis](https://img.shields.io/badge/Redis-BullMQ-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-6BA539?logo=openapiinitiative&logoColor=white)
-![License](https://img.shields.io/badge/License-ISC-blue)
+![License](https://img.shields.io/badge/License-Proprietary-red)
 
 Production-grade TypeScript video platform backend, built to demonstrate senior backend
 architecture, secure authentication, authorization, background jobs,
 observability, testing, containerized runtime, and API documentation.
 
-Streamly is a YouTube-inspired backend API. It is not a clone of YouTube, and
-it is not presented as a live hosted product. The repository is a complete
-backend engineering portfolio project with a production-style local runtime and
+Streamly is a YouTube-inspired backend API. It is not a clone of YouTube. The
+repository is a complete backend engineering portfolio project with a
+production-style local runtime, owner-confirmed HTTPS domain, and
 deployment-ready documentation.
 
 **Business route count:** `43`  
-**Prepared domain:** `streamly.zytheran.me`  
+**Production domain:** `https://streamly.zytheran.me`  
 **Runtime shape:** `Nginx -> Express API -> PostgreSQL / Redis / BullMQ worker`
 
 ---
@@ -54,6 +54,7 @@ runtime operations, and developer experience.
 | Production Auth | JWT access tokens, refresh token rotation, hashed refresh tokens, persistent sessions |
 | Authorization | RBAC roles, permissions, user-role mappings, ownership policies |
 | Redis + BullMQ | Cache foundation, queue infrastructure, separate worker runtime |
+| Provider Integrations | Twilio SendGrid email and Twilio SMS providers with safe no-op fallback |
 | Security Hardening | Helmet, CORS, rate limits, sanitization, secure cookies, trusted proxy |
 | Observability | Pino JSON logs, request IDs, correlation IDs, redaction, audit log foundation |
 | Docker Runtime | App, worker, PostgreSQL, Redis, and Nginx in Docker Compose |
@@ -279,14 +280,14 @@ BullMQ queues are backed by Redis and processed by a separate worker service.
 
 | Queue | Purpose |
 | --- | --- |
-| `streamly-email` | Email verification job foundation |
-| `streamly-notification` | Notification job foundation |
-| `streamly-thumbnail` | Thumbnail job placeholder |
+| `streamly-email` | Email verification delivery through SendGrid when configured |
+| `streamly-notification` | Notification foundation with Twilio SMS provider support |
+| `streamly-thumbnail` | Cloudinary video thumbnail generation |
 | `streamly-cleanup` | Expired auth artifact cleanup |
 | `streamly-verification` | Safe queue verification |
 
-Real email provider integration and real thumbnail generation are intentionally
-deferred production extensions.
+Provider calls use safe no-op behavior unless explicitly enabled and configured
+with production credentials.
 
 ---
 
@@ -354,21 +355,21 @@ Testing guide: [docs/TESTING.md](docs/TESTING.md).
 
 ## Deployment Readiness
 
-Streamly is prepared for hosted deployment, but this repository does not
-automate cloud provisioning or SSL.
+Streamly has an owner-confirmed HTTPS domain. This repository does not automate
+cloud provisioning, DNS, or certificate renewal.
 
-Planned domain:
+Production domain:
 
 ```txt
-streamly.zytheran.me
+https://streamly.zytheran.me
 ```
 
-Planned HTTP routes after DNS:
+Production HTTPS routes:
 
 ```txt
-http://streamly.zytheran.me/api/v1/healthcheck
-http://streamly.zytheran.me/api/v1/docs
-http://streamly.zytheran.me/api/v1/docs/openapi.json
+https://streamly.zytheran.me/api/v1/healthcheck
+https://streamly.zytheran.me/api/v1/docs
+https://streamly.zytheran.me/api/v1/docs/openapi.json
 ```
 
 DNS record needed:
@@ -380,8 +381,7 @@ Value: SERVER_PUBLIC_IP
 TTL: Auto/default
 ```
 
-HTTPS, Certbot, automatic certificate renewal, and server provisioning are
-future deployment tasks.
+AWS deployment remains manual and is documented for the owner to complete.
 
 Deployment guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
@@ -440,26 +440,23 @@ nginx/                       reverse proxy config
 
 ## Known Limitations
 
-- Domain is prepared, not verified as live.
-- HTTPS is not configured.
-- Real email provider is not integrated.
-- Real thumbnail generation is deferred.
+- AWS deployment is manual and not automated in this repository.
+- Real credentials must be configured by the owner in production env files.
+- Twilio SendGrid and Twilio SMS providers require production credentials.
 - S3 storage is prepared through env placeholders, not active by default.
 - Redis-backed distributed rate limiting is not implemented.
 - External monitoring and tracing are not integrated.
 - Database-backed integration tests are guarded by default.
 - Dependency advisories remain and are reported by CI.
 - No formal security audit has been completed.
-- No standalone `LICENSE` file exists; package metadata currently uses `ISC`.
+- The repository is proprietary and not open source.
 
 ---
 
 ## Future Improvements
 
-- VPS deployment workflow.
-- HTTPS with Certbot or managed certificates.
-- Real email provider integration.
-- Real thumbnail processing pipeline.
+- AWS/VPS deployment workflow.
+- Certificate renewal automation.
 - Dependency advisory remediation.
 - OpenTelemetry metrics and traces.
 - External monitoring and alerting.
@@ -473,3 +470,10 @@ nginx/                       reverse proxy config
 
 All planned roadmap phases are complete. The repository is ready for portfolio
 review, backend architecture review, DevOps review, and future deployment work.
+
+## License
+
+This repository is proprietary. All rights are reserved by Tushar Gour. The
+code is available for portfolio review only. No reuse, copying, redistribution,
+hosting, deployment, sublicensing, sale, or derivative work is permitted without
+prior written permission.

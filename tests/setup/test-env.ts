@@ -23,6 +23,10 @@ process.env.REFRESH_TOKEN_SECRET =
 process.env.REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "10d";
 process.env.EMAIL_VERIFICATION_TOKEN_EXPIRY =
     process.env.EMAIL_VERIFICATION_TOKEN_EXPIRY || "1d";
+process.env.EMAIL_ENABLED = process.env.EMAIL_ENABLED || "false";
+process.env.EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || "noop";
+process.env.SMS_ENABLED = process.env.SMS_ENABLED || "false";
+process.env.SMS_PROVIDER = process.env.SMS_PROVIDER || "noop";
 process.env.CLOUDINARY_CLOUD_NAME =
     process.env.CLOUDINARY_CLOUD_NAME || "test_cloud";
 process.env.CLOUDINARY_API_KEY =
@@ -30,3 +34,5 @@ process.env.CLOUDINARY_API_KEY =
 process.env.CLOUDINARY_API_SECRET =
     process.env.CLOUDINARY_API_SECRET || "test_api_secret";
 process.env.MOCK_CLOUDINARY = process.env.MOCK_CLOUDINARY || "true";
+process.env.THUMBNAIL_GENERATION_ENABLED =
+    process.env.THUMBNAIL_GENERATION_ENABLED || "false";

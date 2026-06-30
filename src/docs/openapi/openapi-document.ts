@@ -32,7 +32,7 @@ const openApiDocument = {
         description:
             "Production-grade video platform backend API. Documentation reflects existing route behavior, authentication, RBAC permissions, file uploads, pagination, and error response shape.",
         license: {
-            name: "ISC",
+            name: "Proprietary - All rights reserved",
         },
     },
     servers: [
@@ -46,7 +46,7 @@ const openApiDocument = {
         },
         {
             url: appConfig.docs.serverUrl || appConfig.publicBaseUrl,
-            description: "Production planned host",
+            description: "Production host",
         },
     ],
     tags: [

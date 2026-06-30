@@ -71,6 +71,16 @@ class PrismaVideoRepository extends VideoRepository {
         );
     }
 
+    async updateThumbnail(videoId, thumbnail) {
+        return toVideo(
+            await prisma.video.update({
+                where: { id: videoId },
+                data: { thumbnail },
+                include: videoInclude,
+            })
+        );
+    }
+
     deleteById(videoId) {
         return prisma.video.delete({ where: { id: videoId } });
     }

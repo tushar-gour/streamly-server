@@ -5,7 +5,7 @@ restrictions, and definition of done.
 
 ## Final Status
 
-All planned phases are complete as of 2026-06-29.
+All planned phases are complete as of 2026-06-30.
 
 Current repository:
 
@@ -25,14 +25,14 @@ Business route count:
 43
 ```
 
-Prepared domain:
+Production domain:
 
 ```txt
-streamly.zytheran.me
+https://streamly.zytheran.me
 ```
 
-The domain is prepared in Nginx and OpenAPI docs, but no live deployment or
-HTTPS automation is claimed.
+The owner has confirmed the production domain and HTTPS. This repository still
+does not automate cloud deployment or certificate renewal.
 
 ## Final Stack
 
@@ -167,16 +167,17 @@ Expected result:
 - Nginx reverse proxy with `streamly.zytheran.me` server name.
 - GitHub Actions CI on push to `main` and pull requests.
 - Final documentation set.
+- Post-roadmap TypeScript runtime, HTTP Range streaming, production env
+  templates, SendGrid email, Twilio SMS provider infrastructure, Cloudinary
+  thumbnail generation, and proprietary licensing.
 
 ## Remaining Future Work
 
 These are intentionally outside the completed roadmap:
 
-- Live VPS or cloud deployment.
-- HTTPS, Certbot, and automatic certificate renewal.
+- AWS/VPS cloud deployment automation.
+- Certbot or certificate renewal automation.
 - DNS provider automation.
-- Real email provider integration.
-- Real thumbnail generation pipeline.
 - Redis-backed distributed rate limiting.
 - External monitoring, tracing, alerting, and metrics dashboards.
 - Formal security audit.

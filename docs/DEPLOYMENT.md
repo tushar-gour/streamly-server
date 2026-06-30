@@ -1,8 +1,8 @@
 # Streamly Deployment Preparation
 
 This repository prepares Streamly for production-style deployment but does not
-perform cloud provisioning, DNS automation, HTTPS setup, or deployment
-automation.
+perform cloud provisioning, DNS automation, certificate renewal automation, or
+deployment automation.
 
 ## Current Deployment-Ready Shape
 
@@ -10,29 +10,31 @@ automation.
 - Docker Compose runtime with app, worker, PostgreSQL, Redis, and Nginx.
 - Prisma migrations.
 - Healthcheck routes.
-- Nginx reverse proxy on HTTP.
+- Nginx reverse proxy.
 - GitHub Actions CI.
 - OpenAPI documentation.
 - TypeScript production build to `dist/`.
 - AWS-ready production environment template.
+- Owner-confirmed HTTPS domain: `https://streamly.zytheran.me`.
 
-## Planned Domain
+## Production Domain
 
 ```txt
-streamly.zytheran.me
+https://streamly.zytheran.me
 ```
 
-Planned HTTP URLs:
+Production HTTPS URLs:
 
 ```txt
-http://streamly.zytheran.me/api/v1/healthcheck
-http://streamly.zytheran.me/api/v1/docs
-http://streamly.zytheran.me/api/v1/docs/openapi.json
+https://streamly.zytheran.me/api/v1/healthcheck
+https://streamly.zytheran.me/api/v1/docs
+https://streamly.zytheran.me/api/v1/docs/openapi.json
 ```
 
 ## DNS
 
-Create an A record before expecting the domain to resolve:
+The owner has confirmed DNS for the current production domain. For a future
+server move, use this A record pattern:
 
 ```txt
 Host: streamly
@@ -72,11 +74,10 @@ Upload proxy limit:
 client_max_body_size 100m
 ```
 
-## HTTPS Deferred
+## HTTPS Status
 
-HTTPS, Certbot, Let's Encrypt, certificate renewal, and redirect policy are not
-implemented. Until SSL is configured in a future deployment phase, the planned
-domain is HTTP only.
+HTTPS is owner-confirmed for `streamly.zytheran.me`. This repository still does
+not automate Certbot, Let's Encrypt, certificate renewal, or redirect policy.
 
 ## Production Environment Checklist
 
@@ -103,6 +104,15 @@ Set production-safe values for:
 - `AUTH_RATE_LIMIT_MAX`
 - `MEDIA_STORAGE_PROVIDER`
 - `VIDEO_STREAMING_ENABLED`
+- `EMAIL_ENABLED`
+- `EMAIL_PROVIDER`
+- `SENDGRID_API_KEY`
+- `SENDGRID_FROM_EMAIL`
+- `SMS_ENABLED`
+- `SMS_PROVIDER`
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `THUMBNAIL_GENERATION_ENABLED`
 - `AWS_REGION`
 - `AWS_S3_BUCKET`
 
@@ -128,6 +138,16 @@ GET /api/v1/videos/{videoId}/stream
 The endpoint supports HTTP Range requests for large video playback and proxies
 trusted stored media URLs. Nginx forwards Range and If-Range headers and keeps
 proxy buffering disabled for streaming behavior.
+
+## Email, SMS, And Thumbnails
+
+- Email verification jobs use Twilio SendGrid when `EMAIL_ENABLED=true` and
+  `EMAIL_PROVIDER=sendgrid`.
+- SMS notification infrastructure uses Twilio when `SMS_ENABLED=true` and
+  `SMS_PROVIDER=twilio`.
+- Thumbnail jobs generate Cloudinary transformation URLs when
+  `THUMBNAIL_GENERATION_ENABLED=true`.
+- Tests and CI use no-op providers and never call real providers.
 
 ## Migration Checklist
 
@@ -171,10 +191,10 @@ Nginx:
 curl http://localhost:8080/api/v1/healthcheck
 ```
 
-Domain after DNS:
+Production domain:
 
 ```bash
-curl http://streamly.zytheran.me/api/v1/healthcheck
+curl https://streamly.zytheran.me/api/v1/healthcheck
 ```
 
 ## Swagger Verification
@@ -183,10 +203,10 @@ curl http://streamly.zytheran.me/api/v1/healthcheck
 curl http://localhost:8080/api/v1/docs/openapi.json
 ```
 
-After DNS:
+Production domain:
 
 ```bash
-curl http://streamly.zytheran.me/api/v1/docs/openapi.json
+curl https://streamly.zytheran.me/api/v1/docs/openapi.json
 ```
 
 ## Rollback Notes
@@ -202,8 +222,8 @@ curl http://streamly.zytheran.me/api/v1/docs/openapi.json
 - Cloud server provisioning.
 - SSH deployment.
 - Docker registry publishing.
-- HTTPS certificates.
 - DNS provider configuration.
+- Certificate renewal automation.
 - Backups.
 - External monitoring.
 - Blue-green or canary deployment.

@@ -182,9 +182,10 @@ sequenceDiagram
     Processor-->>Worker: result or sanitized error
 ```
 
-Current queues support email verification, notifications, cleanup, thumbnail
-placeholder jobs, and job health verification. Real email delivery and media
-thumbnail generation are intentionally deferred.
+Current queues support email verification, notifications, cleanup, Cloudinary
+thumbnail generation, and job health verification. Email delivery uses Twilio
+SendGrid when configured, while SMS notification infrastructure uses Twilio
+when enabled.
 
 ## Cache Flow
 

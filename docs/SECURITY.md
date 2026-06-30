@@ -58,7 +58,8 @@ Email verification token infrastructure exists:
 - expiry is recorded
 - used tokens cannot be reused
 
-Real email delivery is not implemented.
+Email verification delivery uses Twilio SendGrid when explicitly configured.
+Tests and CI use no-op delivery.
 
 ## RBAC Model
 
@@ -143,7 +144,7 @@ Cookie behavior is environment-aware:
 - `COOKIE_SAME_SITE` controls same-site behavior
 
 Defaults favor local development. Production should enable secure cookies behind
-HTTPS.
+HTTPS. The owner has confirmed HTTPS for `https://streamly.zytheran.me`.
 
 ## CSRF Decision
 
@@ -190,7 +191,7 @@ Logs redact sensitive keys including:
 
 - No formal external security audit.
 - No CSRF token flow.
-- No HTTPS automation.
+- No certificate renewal automation.
 - No distributed rate limiting.
 - Dependency advisories currently exist.
 - No external vulnerability monitoring integration beyond GitHub advisories.

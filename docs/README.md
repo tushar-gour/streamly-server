@@ -24,5 +24,8 @@ Documentation index for the Streamly backend.
 
 All planned phases through Phase 15 are complete. Post-roadmap Phase 16 adds
 TypeScript runtime source, HTTP Range video streaming, and production
-environment templates. Deployment automation, HTTPS, real email delivery,
-external monitoring, and formal security review remain future work.
+environment templates. HTTPS is owner-confirmed for
+`https://streamly.zytheran.me`. SendGrid email, Twilio SMS, and Cloudinary
+thumbnail generation are integrated behind explicit provider configuration.
+Deployment automation, external monitoring, and formal security review remain
+future work.

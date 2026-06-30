@@ -1,6 +1,7 @@
 {
   "name": "youtube-backend",
   "version": "1.0.0",
+  "private": true,
   "description": "A production-grade video platform backend API built with Node.js, TypeScript, Express, PostgreSQL, and Prisma",
   "type": "module",
   "main": "dist/src/index.js",
@@ -52,9 +53,10 @@
     "rest-api"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.79.2",
     "cloudinary": "^2.3.1",
@@ -69,7 +71,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "pino": "^10.3.1",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^6.0.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

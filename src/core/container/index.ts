@@ -116,6 +116,7 @@ const container = Object.freeze({
             cacheService,
             authorizationService,
             mediaStreamService,
+            thumbnailJobProducer,
         }),
         commentService: new CommentService({
             commentRepository,

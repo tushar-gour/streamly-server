@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { JobNames } from "../job.constants.js";
-import { EmailDeliveryProvider } from "../providers/email-delivery.provider.js";
+import { createEmailProvider } from "../../notifications/email/email-provider.factory.js";
 
-const emailDeliveryProvider = new EmailDeliveryProvider();
+const emailDeliveryProvider = createEmailProvider();
 
 const processEmailJob = async (job) => {
     if (job.name !== JobNames.SEND_EMAIL_VERIFICATION) {
@@ -11,7 +11,7 @@ const processEmailJob = async (job) => {
 
     const { userId, email, username, expiresAt, token } = job.data;
 
-    await emailDeliveryProvider.sendEmailVerification({
+    const result = await emailDeliveryProvider.sendEmailVerification({
         userId,
         email,
         username,
@@ -20,8 +20,8 @@ const processEmailJob = async (job) => {
     });
 
     return {
-        delivered: false,
-        mode: "stub",
+        delivered: result.delivered,
+        provider: result.provider,
     };
 };
 

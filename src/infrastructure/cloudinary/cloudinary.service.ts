@@ -191,11 +191,32 @@ class CloudinaryService {
         });
     }
 
+    getVideoThumbnailUrl(videoUrl, options = {}) {
+        const publicId = this.extractPublicId(videoUrl);
+        if (!publicId) return null;
+
+        return cloudinary.url(publicId, {
+            resource_type: "video",
+            format: options.format || "jpg",
+            transformation: [
+                {
+                    start_offset: options.startOffset || "auto",
+                    width: options.width || 1280,
+                    height: options.height || 720,
+                    crop: options.crop || "fill",
+                    quality: options.quality || "auto",
+                },
+            ],
+            secure: true,
+        });
+    }
+
     extractPublicId(url) {
         if (!url) return null;
 
         try {
-            const regex = /\/v\d+\/(.+)\.[a-z]+$/i;
+            const regex =
+                /\/(?:image|video|raw)\/upload\/(?:[^/]+\/)*v\d+\/(.+)\.[a-z0-9]+(?:\?.*)?$/i;
             const match = url.match(regex);
             return match ? match[1] : null;
         } catch {

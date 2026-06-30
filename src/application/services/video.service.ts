@@ -27,6 +27,7 @@ class VideoService {
         cacheService,
         authorizationService,
         mediaStreamService,
+        thumbnailJobProducer,
     }) {
         this.videoRepository = videoRepository;
         this.userRepository = userRepository;
@@ -36,6 +37,7 @@ class VideoService {
         this.cacheService = cacheService;
         this.authorizationService = authorizationService;
         this.mediaStreamService = mediaStreamService;
+        this.thumbnailJobProducer = thumbnailJobProducer;
     }
 
     async getAll(queryParams) {
@@ -177,6 +179,22 @@ class VideoService {
         const publishedVideo = await this.videoRepository.findByIdWithOwner(
             video._id
         );
+
+        this.thumbnailJobProducer
+            ?.enqueueThumbnailGeneration({
+                videoId: video._id,
+                videoUrl: video.videoFile,
+            })
+            .catch((error) => {
+                this.thumbnailJobProducer?.logEnqueueFailure(
+                    error,
+                    "thumbnail.generate"
+                );
+                videoServiceLogger.warn(
+                    { videoId: video._id },
+                    "thumbnail generation job enqueue failed"
+                );
+            });
 
         await this.#invalidateAllVideoCache();
 

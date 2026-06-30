@@ -1,6 +1,11 @@
 // @ts-nocheck
 import { appConfig } from "../../../config/env.js";
+import { PrismaVideoRepository } from "../../repositories/video.repository.js";
+import { CloudinaryThumbnailProvider } from "../../media/cloudinary-thumbnail.provider.js";
 import { JobNames } from "../job.constants.js";
+
+const thumbnailProvider = new CloudinaryThumbnailProvider();
+const videoRepository = new PrismaVideoRepository();
 
 const processThumbnailJob = async (job) => {
     if (job.name !== JobNames.GENERATE_THUMBNAIL) {
@@ -14,9 +19,24 @@ const processThumbnailJob = async (job) => {
         };
     }
 
+    const { videoId, videoUrl } = job.data;
+    const result = await thumbnailProvider.generateFromVideo({
+        videoId,
+        videoUrl,
+    });
+
+    if (!result.generated) {
+        return result;
+    }
+
+    await videoRepository.updateThumbnail(videoId, result.thumbnailUrl);
+
     return {
-        generated: false,
-        mode: "placeholder",
+        generated: true,
+        provider: result.provider,
+        width: result.width,
+        height: result.height,
+        format: result.format,
     };
 };
 

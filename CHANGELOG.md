@@ -2,6 +2,24 @@
 
 All notable changes to Streamly are documented here.
 
+## [1.2.0] - 2026-06-30
+
+### Added
+
+- Added Twilio SendGrid email provider with safe no-op fallback.
+- Added Twilio SMS provider infrastructure with masked recipient logging.
+- Added Cloudinary thumbnail generation pipeline for video jobs.
+- Added proprietary all-rights-reserved license posture.
+- Updated production environment templates for HTTPS domain, SendGrid, Twilio,
+  thumbnail generation, and AWS-ready manual deployment.
+
+### Changed
+
+- Updated docs to reflect owner-confirmed HTTPS domain:
+  `https://streamly.zytheran.me`.
+- Removed completed email and thumbnail items from known limitations.
+- Changed package metadata license from `ISC` to `UNLICENSED`.
+
 ## [1.1.0] - 2026-06-29
 
 ### TypeScript
@@ -79,7 +97,7 @@ All notable changes to Streamly are documented here.
 
 - Added BullMQ queue infrastructure.
 - Added separate worker runtime.
-- Added email, notification, cleanup, thumbnail placeholder, and verification
+- Added email, notification, cleanup, thumbnail, and verification
   queues.
 - Added job verification script.
 
@@ -121,8 +139,7 @@ All notable changes to Streamly are documented here.
 ### Known Limitations
 
 - No live cloud deployment is claimed.
-- HTTPS automation is deferred.
-- Real email delivery is deferred.
-- Thumbnail processing is a placeholder.
+- Certificate renewal automation is deferred.
+- Production provider credentials are owner-managed.
 - External monitoring is not integrated.
 - Dependency advisories remain reported by audit tooling.

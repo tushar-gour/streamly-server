@@ -11,7 +11,7 @@ deployment preparation. Never commit real `.env`, `.env.docker`, or
 | --- | --- | --- | --- |
 | `PORT` | Yes | `8000` | Express port |
 | `NODE_ENV` | Yes | `development` | Runtime environment |
-| `APP_PUBLIC_BASE_URL` | Optional | `http://streamly.zytheran.me` | Public app URL for docs and links |
+| `APP_PUBLIC_BASE_URL` | Optional | `https://streamly.zytheran.me` | Public app URL for docs and links |
 
 ## CORS And Proxy
 
@@ -46,7 +46,7 @@ Use `COOKIE_SECURE=true` behind HTTPS.
 | `API_DOCS_ENABLED` | Optional | `true` | Enables Swagger routes |
 | `API_DOCS_ROUTE` | Optional | `/api/v1/docs` | Swagger UI path |
 | `API_DOCS_SPEC_ROUTE` | Optional | `/api/v1/docs/openapi.json` | OpenAPI JSON path |
-| `API_DOCS_SERVER_URL` | Optional | `http://streamly.zytheran.me` | Planned public docs server URL |
+| `API_DOCS_SERVER_URL` | Optional | `https://streamly.zytheran.me` | Public docs server URL |
 
 ## Logging
 
@@ -92,9 +92,10 @@ redis://redis:6379
 | `EMAIL_QUEUE_ENABLED` | Optional | `true` | Email queue |
 | `NOTIFICATION_QUEUE_ENABLED` | Optional | `true` | Notification queue |
 | `CLEANUP_QUEUE_ENABLED` | Optional | `true` | Cleanup queue |
-| `THUMBNAIL_QUEUE_ENABLED` | Optional | `false` | Thumbnail queue |
+| `THUMBNAIL_QUEUE_ENABLED` | Optional | `false` local, `true` production | Thumbnail queue |
 
-Thumbnail processing is not active product behavior.
+Thumbnail processing generates Cloudinary thumbnail transformation URLs when
+enabled.
 
 ## Cache
 
@@ -116,6 +117,33 @@ Thumbnail processing is not active product behavior.
 | `EMAIL_VERIFICATION_TOKEN_EXPIRY` | Optional | `1d` | Verification token lifetime |
 
 Use long random secrets in production.
+
+## Email / Twilio SendGrid
+
+| Variable | Required | Safe local example | Purpose |
+| --- | --- | --- | --- |
+| `EMAIL_ENABLED` | Optional | `false` | Enables real email provider calls |
+| `EMAIL_PROVIDER` | Optional | `noop` local, `sendgrid` production | Email provider |
+| `SENDGRID_API_KEY` | Conditional | empty | Required when SendGrid is enabled |
+| `SENDGRID_FROM_EMAIL` | Conditional | `no-reply@zytheran.me` | Verified sender email |
+| `SENDGRID_FROM_NAME` | Optional | `Streamly` | Sender display name |
+
+SendGrid credentials are required only when `EMAIL_ENABLED=true` and
+`EMAIL_PROVIDER=sendgrid`.
+
+## SMS / Twilio
+
+| Variable | Required | Safe local example | Purpose |
+| --- | --- | --- | --- |
+| `SMS_ENABLED` | Optional | `false` | Enables real SMS provider calls |
+| `SMS_PROVIDER` | Optional | `noop` local, `twilio` production | SMS provider |
+| `TWILIO_ACCOUNT_SID` | Conditional | empty | Twilio account SID |
+| `TWILIO_AUTH_TOKEN` | Conditional | empty | Twilio auth token |
+| `TWILIO_PHONE_NUMBER` | Conditional | empty | Twilio sender phone |
+| `TWILIO_MESSAGING_SERVICE_SID` | Optional | empty | Twilio messaging service |
+
+Twilio credentials are required only when `SMS_ENABLED=true` and
+`SMS_PROVIDER=twilio`.
 
 ## RBAC
 
@@ -143,6 +171,10 @@ Do not use real Cloudinary secrets in examples.
 | --- | --- | --- | --- |
 | `MEDIA_STORAGE_PROVIDER` | Optional | `cloudinary` | Active media provider |
 | `VIDEO_STREAMING_ENABLED` | Optional | `true` | Enables HTTP Range stream endpoint |
+| `THUMBNAIL_GENERATION_ENABLED` | Optional | `false` local, `true` production | Enables thumbnail generation |
+| `THUMBNAIL_WIDTH` | Optional | `1280` | Generated thumbnail width |
+| `THUMBNAIL_HEIGHT` | Optional | `720` | Generated thumbnail height |
+| `THUMBNAIL_FORMAT` | Optional | `jpg` | Generated thumbnail format |
 
 The active provider remains Cloudinary. The stream endpoint proxies trusted
 stored media URLs and supports Range responses when the upstream provider

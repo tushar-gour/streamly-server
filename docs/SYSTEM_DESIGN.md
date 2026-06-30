@@ -120,7 +120,7 @@ BullMQ queues offload background-ready workflows:
 - email verification through SendGrid when configured
 - notification job foundation with Twilio SMS provider support
 - auth cleanup jobs
-- Cloudinary thumbnail generation jobs
+- Cloudinary thumbnail transformation jobs and S3 ffmpeg thumbnail extraction jobs
 - job health verification
 
 Provider calls use safe no-op behavior unless explicitly enabled and
@@ -182,8 +182,8 @@ DNS and HTTPS renewal automation are not managed by this repository.
 - Docker Compose is used instead of Kubernetes for approachable local runtime.
 - Redis-backed distributed rate limiting is deferred.
 - Email and SMS provider integrations require production credentials.
-- Thumbnail processing uses Cloudinary transformations and does not download
-  full videos.
+- Thumbnail processing uses Cloudinary transformations for Cloudinary media and
+  ffmpeg frame extraction for S3 media without buffering full videos in memory.
 - Database-backed integration tests are guarded, not enabled by default in CI.
 - Dependency advisories are reported but not fixed in this documentation phase.
 

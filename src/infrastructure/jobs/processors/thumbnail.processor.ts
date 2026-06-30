@@ -2,9 +2,11 @@
 import { appConfig } from "../../../config/env.js";
 import { PrismaVideoRepository } from "../../repositories/video.repository.js";
 import { CloudinaryThumbnailProvider } from "../../media/cloudinary-thumbnail.provider.js";
+import { S3ThumbnailProvider } from "../../media/s3-thumbnail.provider.js";
 import { JobNames } from "../job.constants.js";
 
 const thumbnailProvider = new CloudinaryThumbnailProvider();
+const s3ThumbnailProvider = new S3ThumbnailProvider();
 const videoRepository = new PrismaVideoRepository();
 
 const processThumbnailJob = async (job) => {
@@ -19,16 +21,12 @@ const processThumbnailJob = async (job) => {
         };
     }
 
-    if (appConfig.media.storageProvider === "s3") {
-        return {
-            generated: false,
-            provider: "s3",
-            mode: "s3-frame-extraction-not-configured",
-        };
-    }
-
     const { videoId, videoUrl } = job.data;
-    const result = await thumbnailProvider.generateFromVideo({
+    const activeThumbnailProvider =
+        appConfig.media.storageProvider === "s3"
+            ? s3ThumbnailProvider
+            : thumbnailProvider;
+    const result = await activeThumbnailProvider.generateFromVideo({
         videoId,
         videoUrl,
     });

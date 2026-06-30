@@ -7,10 +7,12 @@ All notable changes to Streamly are documented here.
 ### Added
 
 - Added AWS S3 media provider with upload, delete, and Range streaming support.
+- Added S3 ffmpeg thumbnail extraction for worker-generated video thumbnails.
 - Added Cloudflare Turnstile provider and Redis-backed smart captcha risk state.
 - Added OTP challenge persistence for email, SMS, and WhatsApp flows.
 - Added authenticator-app MFA persistence, challenge records, and trust tokens.
 - Added Twilio WhatsApp notification provider infrastructure.
+- Added `ffmpeg-static` runtime dependency for portable thumbnail processing.
 - Added staged auth-platform signup and login routes.
 - Added Prisma migration for phone verification, OTP challenges, MFA methods,
   MFA challenges, and MFA trust tokens.

@@ -284,7 +284,7 @@ BullMQ queues are backed by Redis and processed by a separate worker service.
 | --- | --- |
 | `streamly-email` | Email verification delivery through SendGrid when configured |
 | `streamly-notification` | Notification foundation with Twilio SMS provider support |
-| `streamly-thumbnail` | Cloudinary video thumbnail generation |
+| `streamly-thumbnail` | Cloudinary transformations or S3 ffmpeg frame extraction |
 | `streamly-cleanup` | Expired auth artifact cleanup |
 | `streamly-verification` | Safe queue verification |
 

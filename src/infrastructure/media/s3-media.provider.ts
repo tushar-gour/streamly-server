@@ -10,6 +10,7 @@ import {
     PutObjectCommand,
     S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { appConfig } from "../../config/env.js";
 import { HttpStatus } from "../../shared/constants/index.js";
@@ -204,6 +205,26 @@ class S3MediaProvider implements MediaStorageProvider, MediaStreamProvider {
         );
 
         return true;
+    }
+
+    getObjectKey(objectKeyOrUrl: string): string {
+        return getObjectKeyFromTrustedUrl(objectKeyOrUrl);
+    }
+
+    async createReadUrl(
+        objectKeyOrUrl: string,
+        expiresInSeconds = 900
+    ): Promise<string> {
+        const objectKey = getObjectKeyFromTrustedUrl(objectKeyOrUrl);
+
+        return getSignedUrl(
+            this.#client,
+            new GetObjectCommand({
+                Bucket: appConfig.aws.s3Bucket,
+                Key: objectKey,
+            }),
+            { expiresIn: expiresInSeconds }
+        );
     }
 
     async stream({

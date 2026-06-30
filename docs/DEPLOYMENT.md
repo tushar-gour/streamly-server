@@ -145,7 +145,8 @@ proxy buffering disabled for streaming behavior.
   `EMAIL_PROVIDER=sendgrid`.
 - SMS notification infrastructure uses Twilio when `SMS_ENABLED=true` and
   `SMS_PROVIDER=twilio`.
-- Thumbnail jobs generate Cloudinary transformation URLs when
+- Thumbnail jobs generate Cloudinary transformation URLs for Cloudinary media
+  and ffmpeg-extracted 16:9 thumbnails for S3 media when
   `THUMBNAIL_GENERATION_ENABLED=true`.
 - Tests and CI use no-op providers and never call real providers.
 

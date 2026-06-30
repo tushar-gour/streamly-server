@@ -35,4 +35,29 @@ export type MediaUploadResult = {
 export interface MediaStorageProvider {
     upload(request: MediaUploadRequest): Promise<MediaUploadResult | null>;
     delete?(objectKeyOrUrl: string): Promise<boolean>;
+    createReadUrl?(
+        objectKeyOrUrl: string,
+        expiresInSeconds?: number
+    ): Promise<string>;
+}
+
+export type ThumbnailGenerationRequest = {
+    videoId: string;
+    videoUrl: string;
+};
+
+export type ThumbnailGenerationResult = {
+    generated: boolean;
+    provider?: string;
+    thumbnailUrl?: string;
+    width?: number;
+    height?: number;
+    format?: string;
+    mode?: string;
+};
+
+export interface ThumbnailProvider {
+    generateFromVideo(
+        request: ThumbnailGenerationRequest
+    ): Promise<ThumbnailGenerationResult>;
 }

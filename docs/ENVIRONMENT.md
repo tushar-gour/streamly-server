@@ -95,9 +95,9 @@ redis://redis:6379
 | `CLEANUP_QUEUE_ENABLED` | Optional | `true` | Cleanup queue |
 | `THUMBNAIL_QUEUE_ENABLED` | Optional | `false` local, `true` production | Thumbnail queue |
 
-Thumbnail processing generates Cloudinary thumbnail transformation URLs when
-enabled for Cloudinary media. S3 thumbnail workers can be extended for
-ffmpeg-based frame extraction.
+Thumbnail processing generates Cloudinary thumbnail transformation URLs for
+Cloudinary media. S3 thumbnail workers use ffmpeg-based frame extraction, upload
+the generated image to S3, and update the existing video thumbnail URL.
 
 ## Cache
 
